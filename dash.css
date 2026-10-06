@@ -273,3 +273,5 @@ textarea:focus{box-shadow:0 0 0 4px rgba(20,184,166,.12)}
 .admin .track i.g{background:linear-gradient(90deg,#6c5ce7,#a06cf0)}
 .admin .stat.s2{background:var(--sky-l)}.admin .stat.s2 em{color:#2b7fd0}
 .admin .days button.on{background:#12142b;border-color:#12142b;color:#fff}
+
+.row .rt{display:flex;align-items:center;gap:8px;flex:none}

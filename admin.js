@@ -127,7 +127,7 @@ function tWorkout(c) {
       <div class="erow"><input data-edit="ex" data-i="${i}" data-k="n" value="${esc(x.n)}" aria-label="Exercise">
       <input data-edit="ex" data-i="${i}" data-k="s" value="${esc(x.s)}" aria-label="Sets">
       <input data-edit="ex" data-i="${i}" data-k="note" value="${esc(x.note || '')}" placeholder="optional note" aria-label="Note">
-      <span class="st">${L.includes(x.id) ? '<span class="bdg green">✓ Done</span>' : ds > today ? '<span class="bdg gray">Upcoming</span>' : '<span class="bdg gray">Not done</span>'}<button class="x" data-act="delex" data-i="${i}" aria-label="Remove">✕</button></span></div>`).join('') : '<div class="empty">Rest day — add exercises below.</div>'}
+      <span class="st"><button class="howto" data-act="how" data-i="${i}" title="Preview 3D demo">▶ 3D</button>${L.includes(x.id) ? '<span class="bdg green">✓ Done</span>' : ds > today ? '<span class="bdg gray">Upcoming</span>' : '<span class="bdg gray">Not done</span>'}<button class="x" data-act="delex" data-i="${i}" aria-label="Remove">✕</button></span></div>`).join('') : '<div class="empty">Rest day — add exercises below.</div>'}
     <form class="add" data-form="ex"><input name="n" placeholder="Exercise (e.g. Bench Press)" required><input name="s" placeholder="4×10" style="max-width:120px"><input name="note" placeholder="Note (optional)"><button class="btn">Add</button></form>
     ${list.length ? `<div class="copy"><span class="mut">Copy ${D.DAYS[st.day]} to</span> ${D.DAYS.map((d, i) => i === st.day ? '' : `<button class="pill" data-act="copyday" data-i="${i}">${d}</button>`).join('')}</div>` : ''}
   </div>`;
@@ -230,6 +230,7 @@ document.addEventListener('click', async e => {
   if (a === 'seed') { for (const c of D.seed()) await SVDAuth.addClientUser(c.name, c.login, 'demo123', c.id); toast('Sample clients added — logins: priya / marcus, password demo123'); return render(); }
   if (a === 'tab') { st.tab = el.dataset.tab; return render(); }
   if (!c) return;
+  if (a === 'how') return SVDExercise.open(c.workouts[st.day][i].n, { gender: c.gender });
   if (a === 'day') { st.day = i; return render(); }
   if (a === 'delex') { c.workouts[st.day].splice(i, 1); D.save(c); return render(); }
   if (a === 'copyday') {

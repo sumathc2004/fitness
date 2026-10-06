@@ -61,7 +61,8 @@ function renderOverview(c) {
 function renderExList(sel, c, dayIdx, canTick) {
   const list = c.workouts[dayIdx] || [], ds = D.weekDates()[dayIdx], done = (c.log[ds] || {}).ex || [], isToday = ds === D.today();
   $(sel).innerHTML = list.length ? list.map((x, i) => `<div class="row ${done.includes(x.id) ? 'done' : ''}"><div><b>${esc(x.n)}</b><small>${esc(x.s || '')}${x.note ? ' · ' + esc(x.note) : ''}</small></div>
-    ${canTick && isToday ? `<button class="chk ${done.includes(x.id) ? 'on' : ''}" data-t="${x.id}" aria-label="Mark done">${done.includes(x.id) ? '✓' : ''}</button>` : done.includes(x.id) ? '<span class="bdg green">✓ Done</span>' : ds > D.today() ? '<span class="bdg gray">Upcoming</span>' : '<span class="bdg gray">Missed</span>'}</div>`).join('') : '<div class="empty">Rest day 😴 — nothing planned.</div>';
+    <span class="rt"><button class="howto" data-how="${esc(x.n)}">▶ How to</button>${canTick && isToday ? `<button class="chk ${done.includes(x.id) ? 'on' : ''}" data-t="${x.id}" aria-label="Mark done">${done.includes(x.id) ? '✓' : ''}</button>` : done.includes(x.id) ? '<span class="bdg green">✓ Done</span>' : ds > D.today() ? '<span class="bdg gray">Upcoming</span>' : '<span class="bdg gray">Missed</span>'}</span></div>`).join('') : '<div class="empty">Rest day 😴 — nothing planned.</div>';
+  $$(sel + ' [data-how]').forEach(b => b.onclick = () => SVDExercise.open(b.dataset.how, { gender: c.gender }));
   $$(sel + ' [data-t]').forEach(b => b.onclick = () => { toggle(todayLog(c).ex, b.dataset.t); D.save(c); render(); });
 }
 
