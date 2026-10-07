@@ -1,0 +1,45 @@
+{
+  "name": "gym-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Gym Management & Fitness Intelligence Platform",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n api,web -c cyan,magenta \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "npm run dev -w @gym/api",
+    "dev:web": "npm run dev -w @gym/web",
+    "build": "npm run build -w @gym/api && npm run build -w @gym/web",
+    "start": "concurrently -k -n api,web \"npm:start -w @gym/api\" \"npm:start -w @gym/web\"",
+    "typecheck": "npm run typecheck -w @gym/config -w @gym/types -w @gym/database -w @gym/api -w @gym/web",
+    "test": "npm run test -w @gym/api",
+    "db:up": "docker compose up -d db",
+    "db:down": "docker compose down",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:reset": "prisma migrate reset --force",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:seed:demo": "tsx prisma/seed.ts --demo",
+    "db:dev-logins": "tsx prisma/dev-logins.ts",
+    "db:studio": "prisma studio",
+    "postinstall": "prisma generate"
+  },
+  "prisma": {
+    "schema": "prisma/schema.prisma",
+    "seed": "tsx prisma/seed.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "concurrently": "^9.1.0",
+    "dotenv": "^16.4.7",
+    "prisma": "~6.19.3",
+    "tsx": "^4.19.2",
+    "typescript": "~5.9.3"
+  }
+}

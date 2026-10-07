@@ -1,0 +1,17 @@
+{
+  "name": "@gym/database",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "generate": "prisma generate --schema ../../prisma/schema.prisma",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@prisma/client": "~6.19.3"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3"
+  }
+}

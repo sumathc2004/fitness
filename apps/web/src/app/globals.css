@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design tokens — dark graphite foundation, white type, ONE strong accent (electric lime). */
+@layer base {
+  :root {
+    --background: 220 14% 5%;
+    --foreground: 210 20% 97%;
+    --surface: 220 13% 8%;
+    --elevated: 220 12% 11%;
+    --card: 220 13% 8%;
+    --card-foreground: 210 20% 97%;
+    --muted: 220 11% 14%;
+    --muted-foreground: 215 10% 60%;
+    --secondary: 220 11% 14%;
+    --secondary-foreground: 210 20% 92%;
+    --border: 220 10% 16%;
+    --input: 220 10% 18%;
+    --ring: 74 100% 59%;
+    --primary: 74 100% 59%;
+    --primary-foreground: 220 14% 6%;
+    --destructive: 352 100% 68%;
+    --destructive-foreground: 210 20% 98%;
+    --good: 148 70% 55%;
+    --monitor: 41 100% 56%;
+    --attention: 352 100% 68%;
+    --chart-1: 74 100% 59%;
+    --chart-2: 173 64% 56%;
+    --chart-3: 41 100% 56%;
+    --chart-4: 255 100% 74%;
+    --chart-5: 352 100% 68%;
+    color-scheme: dark;
+  }
+
+  * { @apply border-border; }
+  /* Single-column grids must be allowed to shrink: without minmax(0,…) long text widens the track and the page scrolls sideways on phones. */
+  .grid { grid-template-columns: minmax(0, 1fr); }
+  html { scroll-behavior: smooth; }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  ::selection { background: hsl(var(--primary) / 0.35); }
+  :focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+
+  /* slim, dark scrollbars */
+  * { scrollbar-width: thin; scrollbar-color: hsl(var(--muted)) transparent; }
+  *::-webkit-scrollbar { width: 8px; height: 8px; }
+  *::-webkit-scrollbar-thumb { background: hsl(var(--muted)); border-radius: 999px; }
+}
+
+@layer components {
+  .glass {
+    @apply border border-white/[0.07] bg-white/[0.035] backdrop-blur-xl;
+  }
+  .surface-card {
+    @apply rounded-xl border border-white/[0.06] bg-card shadow-card;
+  }
+  .text-gradient {
+    background: linear-gradient(100deg, hsl(var(--primary)) 0%, hsl(173 64% 62%) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .grid-bg {
+    background-image:
+      linear-gradient(hsl(0 0% 100% / 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, hsl(0 0% 100% / 0.035) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse at 50% 30%, #000 20%, transparent 72%);
+  }
+  .skeleton { @apply relative overflow-hidden rounded-md bg-white/[0.05]; }
+  .skeleton::after {
+    content: '';
+    @apply absolute inset-0 -translate-x-full;
+    background: linear-gradient(90deg, transparent, hsl(0 0% 100% / 0.06), transparent);
+    animation: shimmer 1.6s infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}

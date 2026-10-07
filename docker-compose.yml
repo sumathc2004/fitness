@@ -1,0 +1,27 @@
+# Local development database. Uses its own port (3307) so it never collides with another MySQL on this machine.
+services:
+  db:
+    image: mysql:8.0
+    container_name: gym-platform-db
+    restart: unless-stopped
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-gym_root_dev}
+      MYSQL_DATABASE: ${DB_NAME:-gym_platform}
+      MYSQL_USER: ${DB_USER:-gym}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-gym_dev_password}
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=+00:00
+    volumes:
+      - gym_db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${DB_ROOT_PASSWORD:-gym_root_dev}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  gym_db_data:
