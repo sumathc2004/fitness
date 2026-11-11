@@ -67,6 +67,9 @@
 }
 
 @layer components {
+  /* scrollable without a visible scrollbar (paged content, tab strips) */
+  .no-scrollbar { scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { display: none; }
   .glass {
     @apply border border-white/[0.07] bg-white/[0.035] backdrop-blur-xl;
   }

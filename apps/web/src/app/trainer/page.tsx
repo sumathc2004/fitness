@@ -1,100 +1,95 @@
 'use client';
 
-import { CalendarDays, Dumbbell, Flame, ShieldAlert, Users } from 'lucide-react';
+import { CalendarDays, Dumbbell, Flame, LineChart, MessageSquare, ShieldAlert, Users, Utensils } from 'lucide-react';
 import type { TrainerDashboard } from '@gym/types';
 import { useAuth } from '@/lib/auth-context';
 import { useApi } from '@/lib/use-api';
-import { pct } from '@/lib/utils';
-import { Greeting, ActivityFeed, AttentionList, EmptyState, ErrorState, RateRing, Section, StatCard, StatCardSkeleton } from '@/components/dashboard/primitives';
-import { Avatar, Badge, Skeleton } from '@/components/ui/misc';
+import { CountUp, ErrorState } from '@/components/dashboard/primitives';
+import { HomeHeader, HomeSkeleton, MainRow, MoreLink, Panel, pct, QuickAccess, Stat, StatRow, SummaryStrip, type QuickItem } from '@/components/dashboard/home';
+import { EmptyLine, PersonRow } from '@/components/dashboard/people-list';
+import { Badge } from '@/components/ui/misc';
 
-const statusVariant: Record<string, 'good' | 'monitor' | 'muted' | 'primary'> = { COMPLETED: 'good', IN_PROGRESS: 'primary', ASSIGNED: 'muted', SKIPPED: 'monitor' };
+/**
+ * Trainer home — same shape as the client's: four numbers, today's sessions + shortcuts, one summary strip.
+ * Full lists and charts live on My Clients, Calendar and Progress.
+ */
+
+const QUICK: QuickItem[] = [
+  { label: 'My Clients', href: '/trainer/clients', icon: Users },
+  { label: 'Workout Builder', href: '/trainer/workout-builder', icon: Dumbbell },
+  { label: 'Calendar', href: '/trainer/workout-calendar', icon: CalendarDays },
+  { label: 'Diet Builder', href: '/trainer/diet-builder', icon: Utensils },
+  { label: 'Progress', href: '/trainer/progress', icon: LineChart },
+  { label: 'Messages', href: '/trainer/messages', icon: MessageSquare },
+];
+
+const STATUS: Record<string, { label: string; tone: string }> = {
+  ASSIGNED: { label: 'Scheduled', tone: 'bg-white/[0.06] text-muted-foreground' },
+  IN_PROGRESS: { label: 'In progress', tone: 'bg-primary/15 text-primary' },
+  COMPLETED: { label: 'Done', tone: 'bg-good/15 text-good' },
+  SKIPPED: { label: 'Skipped', tone: 'bg-monitor/15 text-monitor' },
+};
+
+const rate = (r: number | null) => (r == null ? '—' : `${Math.round(r * 100)}%`);
 
 export default function TrainerDashboardPage() {
   const { user } = useAuth();
-  const { data, error, loading, reload } = useApi<TrainerDashboard>('/trainers/dashboard');
+  const { data, error, reload } = useApi<TrainerDashboard>('/trainers/dashboard');
   if (error) return <ErrorState message={error.message} onRetry={reload} />;
+  if (!data) return <HomeSkeleton />;
+
+  const t = data.totals;
+  const schedule = data.todaysSchedule;
+  const done = schedule.filter((s) => s.status === 'COMPLETED').length;
+  const SHOW = 3;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <p className="text-sm text-muted-foreground"><Greeting />{user ? `, ${user.firstName}` : ''}</p>
-        <h2 className="font-display text-3xl font-bold tracking-tight">Your clients today</h2>
-      </div>
+    <div className="space-y-5">
+      <HomeHeader
+        name={user?.firstName ?? 'Coach'}
+        subtitle="your clients today"
+        badges={<Badge variant="primary"><Users className="size-3.5" /> {t.assignedClients} {t.assignedClients === 1 ? 'client' : 'clients'}</Badge>}
+      />
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {loading || !data ? (
-          Array.from({ length: 4 }, (_, i) => <StatCardSkeleton key={i} />)
-        ) : (
-          <>
-            <StatCard index={0} label="Assigned clients" value={data.totals.assignedClients} icon={Users} tone="primary" />
-            <StatCard index={1} label="Active clients" value={data.totals.activeClients} icon={Flame} />
-            <StatCard index={2} label="Need attention" value={data.totals.needAttention} icon={ShieldAlert} tone="attention" hint="Flagged red" />
-            <StatCard index={3} label="Workouts today" value={data.totals.workoutsToday} icon={CalendarDays} />
-          </>
-        )}
-      </div>
+      <StatRow>
+        <Stat icon={Users} label="Assigned clients" value={<CountUp value={t.assignedClients} />} hint={`${t.activeClients} active`} />
+        <Stat icon={Flame} label="Active clients" value={<CountUp value={t.activeClients} />} progress={pct(t.activeClients, t.assignedClients)} />
+        <Stat icon={ShieldAlert} label="Need attention" value={<CountUp value={t.needAttention} />} tone={t.needAttention > 0 ? 'attention' : 'primary'} hint={t.needAttention > 0 ? 'Flagged red · view list' : 'All on track'} href="/trainer/clients" />
+        <Stat icon={CalendarDays} label="Workouts today" value={`${done}/${t.workoutsToday}`} progress={pct(done, t.workoutsToday)} />
+      </StatRow>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Section title="Today’s schedule" description="Workouts assigned for today" className="lg:col-span-2">
-          {loading || !data ? (
-            <Skeleton className="h-40" />
-          ) : data.todaysSchedule.length === 0 ? (
-            <EmptyState icon={Dumbbell} title="Nothing scheduled today" description="Workouts you assign to clients for today will show up here." />
-          ) : (
-            <ul className="divide-y divide-white/[0.05]">
-              {data.todaysSchedule.map((w) => (
-                <li key={w.workoutId} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                  <Avatar name={w.clientName} size={38} />
-                  <div className="min-w-0 flex-1"><p className="truncate font-medium">{w.name}</p><p className="text-sm text-muted-foreground">{w.clientName} · {w.exerciseCount} exercises</p></div>
-                  <Badge variant={statusVariant[w.status] ?? 'muted'}>{w.status.replace('_', ' ').toLowerCase()}</Badge>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Section>
-        <Section title="Compliance" description="Your clients, last 30 days">
-          {loading || !data ? (
-            <Skeleton className="h-[160px]" />
-          ) : (
-            <div className="flex items-start justify-around pt-2">
-              <RateRing value={data.rates.workoutCompliance} label="Workouts" size={104} />
-              <RateRing value={data.rates.dietCompliance} label="Diet" size={104} />
-            </div>
-          )}
-        </Section>
-      </div>
+      <MainRow
+        main={
+          <Panel title="Today’s sessions" action={<MoreLink href="/trainer/workout-calendar">Calendar</MoreLink>} className="h-full">
+            {schedule.length === 0 ? <EmptyLine icon={CalendarDays} text="No workouts scheduled today." /> : (
+              <>
+                <ul className="-mx-2 space-y-0.5">
+                  {schedule.slice(0, SHOW).map((s) => {
+                    const st = STATUS[s.status] ?? STATUS.ASSIGNED!;
+                    return <PersonRow key={s.workoutId} name={s.clientName} detail={`${s.name} · ${s.exerciseCount} exercises`} tag={st.label} tagTone={st.tone} href={`/trainer/clients/${s.clientId}`} />;
+                  })}
+                </ul>
+                {schedule.length > SHOW && <p className="mt-2 px-2 text-xs text-muted-foreground">+{schedule.length - SHOW} more on the calendar</p>}
+              </>
+            )}
+          </Panel>
+        }
+        side={<QuickAccess items={QUICK} />}
+      />
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Section title="Clients needing attention" description="Most urgent first">
-          {loading || !data ? <Skeleton className="h-48" /> : <AttentionList items={data.attention} emptyText="All of your clients are on track." />}
-        </Section>
-        <Section title="Client progress" description="Weight change (30 days) and workouts this week">
-          {loading || !data ? (
-            <Skeleton className="h-48" />
-          ) : data.clientProgress.length === 0 ? (
-            <EmptyState icon={Users} title="No clients yet" description="Assigned clients and their progress will appear here." />
-          ) : (
-            <ul className="divide-y divide-white/[0.05]">
-              {data.clientProgress.map((c) => (
-                <li key={c.clientId} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                  <Avatar name={c.name} size={34} />
-                  <span className="flex-1 truncate font-medium">{c.name}</span>
-                  <span className="text-sm tabular-nums text-muted-foreground">{c.workoutsThisWeek} workouts</span>
-                  <span className={`w-16 text-right text-sm font-semibold tabular-nums ${c.weightChangeKg == null ? 'text-muted-foreground' : 'text-foreground'}`}>
-                    {c.weightChangeKg == null ? '—' : `${c.weightChangeKg > 0 ? '+' : ''}${c.weightChangeKg} kg`}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Section>
-      </div>
-
-      <Section title="Recent activity" description="What your clients have been up to">
-        {loading || !data ? <Skeleton className="h-40" /> : <ActivityFeed items={data.recentActivity} />}
-      </Section>
-      <p className="text-center text-xs text-muted-foreground/70">Compliance {pct(data?.rates.workoutCompliance ?? null)} workouts · {pct(data?.rates.dietCompliance ?? null)} diet</p>
+      <SummaryStrip
+        title="Compliance · last 30 days"
+        href="/trainer/progress"
+        linkLabel="Progress"
+        rows={[
+          { label: 'Workouts', value: rate(data.rates.workoutCompliance), percent: Math.round((data.rates.workoutCompliance ?? 0) * 100), bar: 'bg-primary' },
+          { label: 'Diet', value: rate(data.rates.dietCompliance), percent: Math.round((data.rates.dietCompliance ?? 0) * 100), bar: 'bg-chart-2' },
+          {
+            label: 'Clients on track', value: `${t.assignedClients - t.needAttention} / ${t.assignedClients}`, percent: pct(t.assignedClients - t.needAttention, t.assignedClients), bar: 'bg-good',
+            note: t.needAttention > 0 ? `${t.needAttention} need attention` : undefined,
+          },
+        ]}
+      />
     </div>
   );
 }
