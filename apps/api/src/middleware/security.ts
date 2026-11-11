@@ -3,7 +3,13 @@ import rateLimit from 'express-rate-limit';
 import { env, isTest } from '../config/env';
 import { forbidden, tooMany } from '../lib/errors';
 
-const allowedOrigins = new Set([env.WEB_URL.replace(/\/$/, '')]);
+// On Vercel the API runs inside the web deployment, so its own URLs are trusted origins too
+// (VERCEL_URL = this deployment, VERCEL_PROJECT_PRODUCTION_URL = the production domain; both are set by Vercel).
+const allowedOrigins = new Set(
+  [env.WEB_URL, process.env.VERCEL_URL, process.env.VERCEL_PROJECT_PRODUCTION_URL]
+    .filter((u): u is string => Boolean(u))
+    .map((u) => (u.startsWith('http') ? u : `https://${u}`).replace(/\/$/, '')),
+);
 
 /**
  * CSRF defence in depth (cookies are already SameSite=Lax): browsers always send Origin on cross-site

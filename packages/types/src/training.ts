@@ -17,15 +17,11 @@ export const exerciseInputSchema = z.object({
 });
 export type ExerciseInput = z.infer<typeof exerciseInputSchema>;
 
-export interface Exercise3DAssetDto {
-  id: string; url: string; animationClip: string | null; credit: string | null; fileSizeBytes: number | null; version: number; createdAt: string;
-}
-
 export interface ExerciseDto {
   id: string; slug: string; name: string; description: string | null;
   category: z.infer<typeof exerciseCategorySchema>; difficulty: z.infer<typeof exerciseDifficultySchema>;
   equipment: string[]; primaryMuscles: string[]; secondaryMuscles: string[]; instructions: string[]; commonMistakes: string[];
-  isActive: boolean; createdById: string | null; assets: Exercise3DAssetDto[];
+  isActive: boolean; createdById: string | null;
 }
 
 // ───────────────────────── workouts
@@ -68,7 +64,7 @@ export const assignWorkoutSchema = z.object({
 export interface WorkoutExerciseDto {
   id: string; exerciseId: string | null; name: string; slug: string | null; section: WorkoutSection; order: number; sets: number; reps: string;
   weightKg: number | null; restSec: number; tempo: string | null; technique: Technique; supersetGroup: number | null; notes: string | null;
-  primaryMuscles: string[]; hasAsset: boolean;
+  primaryMuscles: string[];
 }
 export interface WorkoutDto {
   id: string; name: string; clientId: string | null; clientName: string | null; trainerId: string; isTemplate: boolean;

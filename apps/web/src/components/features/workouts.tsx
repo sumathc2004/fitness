@@ -116,7 +116,7 @@ export function AssignWorkoutModal({ workoutId, open, onClose, onDone }: { worko
 
 export function WorkoutBuilderPage({ id, listHref, forceTemplate }: { id?: string; listHref: string; forceTemplate: boolean }) {
   const router = useRouter();
-  const sp = useSearchParams();
+  const sp = useSearchParams() ?? new URLSearchParams(); // typed nullable since src/pages exists; never null in the App Router
   const existing = useApi<WorkoutDto>(id ? `/workouts/${id}` : null);
   const clients = useClients();
   const { busy, run } = useAction();

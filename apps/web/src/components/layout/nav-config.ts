@@ -1,6 +1,6 @@
 import {
   Activity, BarChart3, Bell, Calculator, CalendarDays, CalendarCheck, ClipboardList, CreditCard, Dumbbell, FileText, Flame, Gauge, Heart, Image as ImageIcon, LayoutDashboard,
-  Layers, LineChart, ListChecks, MessageSquare, Moon, Ruler, ScrollText, Settings, Salad, Droplets, ShieldCheck, Sparkles, Ticket, UserCog, Users, Utensils, Receipt, Box, Wallet, UserCircle,
+  Layers, LineChart, ListChecks, MessageSquare, Moon, Ruler, ScrollText, Settings, Salad, Droplets, ShieldCheck, Sparkles, Ticket, UserCog, Users, Utensils, Receipt, BookOpen, Wallet, UserCircle,
   type LucideIcon,
 } from 'lucide-react';
 import type { RoleName } from '@gym/config';
@@ -20,7 +20,6 @@ export const NAV: Record<RoleName, NavItem[]> = {
     i('Trainers', '/admin/trainers', UserCog, 'People'),
     i('Clients', '/admin/clients', Users, 'People'),
     i('Exercises', '/admin/exercises', Dumbbell, 'Training'),
-    i('3D Exercise Library', '/admin/exercise-3d', Box, 'Training'),
     i('Workout Templates', '/admin/workout-templates', ClipboardList, 'Training'),
     i('Diet Templates', '/admin/diet-templates', Utensils, 'Nutrition'),
     i('Nutrition Settings', '/admin/nutrition-settings', Salad, 'Nutrition'),
@@ -41,7 +40,7 @@ export const NAV: Record<RoleName, NavItem[]> = {
     i('Workout Builder', '/trainer/workout-builder', Dumbbell, 'Training'),
     i('Workout Calendar', '/trainer/workout-calendar', CalendarDays, 'Training'),
     i('Workout Templates', '/trainer/workout-templates', ClipboardList, 'Training'),
-    i('3D Exercise Library', '/trainer/exercise-3d', Box, 'Training'),
+    i('Exercise Library', '/trainer/exercises', BookOpen, 'Training'),
     i('Diet Builder', '/trainer/diet-builder', Utensils, 'Nutrition'),
     i('Meal Plans', '/trainer/meal-plans', Salad, 'Nutrition'),
     i('Nutrition Calculator', '/trainer/nutrition-calculator', Calculator, 'Nutrition'),
@@ -59,7 +58,7 @@ export const NAV: Record<RoleName, NavItem[]> = {
     i('Dashboard', '/client', LayoutDashboard, 'Overview'),
     i('Today’s Workout', '/client/workout', Flame, 'Training'),
     i('Workout History', '/client/workout-history', ListChecks, 'Training'),
-    i('3D Exercises', '/client/exercise-3d', Box, 'Training'),
+    i('Exercise Library', '/client/exercises', BookOpen, 'Training'),
     i('My Diet', '/client/diet', Utensils, 'Nutrition'),
     i('Nutrition Calculator', '/client/nutrition-calculator', Calculator, 'Nutrition'),
     i('Body Analysis', '/client/body-analysis', Gauge, 'Analysis'),

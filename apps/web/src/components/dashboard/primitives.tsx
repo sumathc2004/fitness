@@ -23,20 +23,20 @@ export function CountUp({ value, format = (n: number) => Math.round(n).toLocaleS
 }
 
 export function StatCard({
-  label, value, hint, icon: Icon, format, suffix, tone = 'default', index = 0,
-}: { label: string; value: number | string; hint?: string; icon: LucideIcon; format?: (n: number) => string; suffix?: string; tone?: 'default' | 'primary' | 'attention'; index?: number }) {
+  label, value, hint, icon: Icon, format, suffix, tone = 'default', index = 0, compact = false,
+}: { label: string; value: number | string; hint?: string; icon: LucideIcon; format?: (n: number) => string; suffix?: string; tone?: 'default' | 'primary' | 'attention'; index?: number; compact?: boolean }) {
   return (
-    <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05, duration: 0.45, ease: 'easeOut' }}>
-      <Card className="group relative overflow-hidden transition-colors hover:border-white/[0.12]">
+    <motion.div className="h-full" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05, duration: 0.45, ease: 'easeOut' }}>
+      <Card className="group relative h-full overflow-hidden transition-colors hover:border-white/[0.12]">
         <div className="pointer-events-none absolute -right-8 -top-8 size-28 rounded-full bg-primary/[0.06] blur-2xl transition-opacity group-hover:opacity-100" />
-        <CardContent className="p-5">
+        <CardContent className={compact ? 'p-4' : 'p-5'}>
           <div className="flex items-start justify-between">
             <p className="text-sm font-medium text-muted-foreground">{label}</p>
-            <span className={cn('grid size-9 place-items-center rounded-md', tone === 'primary' ? 'bg-primary/15 text-primary' : tone === 'attention' ? 'bg-attention/15 text-attention' : 'bg-white/[0.05] text-muted-foreground')}>
+            <span className={cn('grid place-items-center rounded-md', compact ? 'size-8' : 'size-9', tone === 'primary' ? 'bg-primary/15 text-primary' : tone === 'attention' ? 'bg-attention/15 text-attention' : 'bg-white/[0.05] text-muted-foreground')}>
               <Icon className="size-[18px]" />
             </span>
           </div>
-          <p className="mt-3 font-display text-3xl font-bold tracking-tight tabular-nums">
+          <p className={cn('font-display font-bold tracking-tight tabular-nums', compact ? 'mt-1 text-2xl' : 'mt-3 text-3xl')}>
             {typeof value === 'number' ? <CountUp value={value} format={format} /> : value}
             {suffix && <span className="ml-1 text-base font-medium text-muted-foreground">{suffix}</span>}
           </p>
@@ -53,22 +53,26 @@ export function StatCardSkeleton() {
   );
 }
 
-export function Section({ title, description, action, children, className }: { title: string; description?: string; action?: React.ReactNode; children: React.ReactNode; className?: string }) {
+/**
+ * `fill`: tighter padding, and the body stretches to the card's height and scrolls inside it when it overflows,
+ * so the card can sit in a fixed-height grid cell (e.g. a dashboard that fits one screen).
+ */
+export function Section({ title, description, action, children, className, fill = false }: { title: string; description?: string; action?: React.ReactNode; children: React.ReactNode; className?: string; fill?: boolean }) {
   return (
-    <Card className={className}>
-      <CardHeader className="flex-row items-start justify-between gap-4">
-        <div><CardTitle>{title}</CardTitle>{description && <CardDescription className="mt-1">{description}</CardDescription>}</div>
+    <Card className={cn(fill && 'flex min-h-0 flex-col', className)}>
+      <CardHeader className={cn('flex-row items-start justify-between gap-4', fill && 'shrink-0 p-4 pb-2')}>
+        <div className="min-w-0"><CardTitle>{title}</CardTitle>{description && <CardDescription className={cn('mt-1', fill && 'mt-0.5 truncate')}>{description}</CardDescription>}</div>
         {action}
       </CardHeader>
-      <CardContent>{children}</CardContent>
+      <CardContent className={cn(fill && 'min-h-0 flex-1 overflow-y-auto p-4 pt-1')}>{children}</CardContent>
     </Card>
   );
 }
 
 // ───────────────────────── states
-export function EmptyState({ icon: Icon, title, description, action }: { icon: LucideIcon; title: string; description?: string; action?: React.ReactNode }) {
+export function EmptyState({ icon: Icon, title, description, action, className }: { icon: LucideIcon; title: string; description?: string; action?: React.ReactNode; className?: string }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-white/10 px-6 py-10 text-center">
+    <div className={cn('flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-white/10 px-6 py-10 text-center', className)}>
       <span className="grid size-12 place-items-center rounded-full bg-white/[0.05] text-muted-foreground"><Icon className="size-6" /></span>
       <div>
         <p className="font-display font-semibold">{title}</p>

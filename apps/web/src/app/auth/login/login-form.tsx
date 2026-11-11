@@ -19,7 +19,7 @@ const ROLES: Array<{ role: RoleName; label: string; hint: string; icon: LucideIc
 ];
 
 export function LoginForm() {
-  const params = useSearchParams();
+  const params = useSearchParams() ?? new URLSearchParams(); // typed nullable since src/pages exists; never null in the App Router
   const [role, setRole] = useState<RoleName>('CLIENT');
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');

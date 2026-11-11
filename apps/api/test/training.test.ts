@@ -23,7 +23,6 @@ beforeAll(async () => {
   otherClientA = await loggedInAgent(otherClient.email);
 });
 
-const glb = () => { const b = Buffer.alloc(40); b.writeUInt32LE(0x46546c67, 0); b.writeUInt32LE(2, 4); b.writeUInt32LE(40, 8); return b; };
 const today = () => new Date().toISOString().slice(0, 10);
 
 describe('trainers & clients', () => {
@@ -92,7 +91,7 @@ describe('trainers & clients', () => {
   });
 });
 
-describe('exercises & 3D models', () => {
+describe('exercises', () => {
   let exId: string;
   it('trainers create exercises and may edit only their own', async () => {
     const body = { name: 'Cable Fly', category: 'STRENGTH', difficulty: 'BEGINNER', equipment: ['Cable'], primaryMuscles: ['Chest'], secondaryMuscles: [], instructions: ['Pull handles together'], commonMistakes: [] };
@@ -114,23 +113,6 @@ describe('exercises & 3D models', () => {
     expect((await clientA.get('/api/exercises?includeInactive=true')).body.items.some((e: { id: string }) => e.id === exId)).toBe(false);
     expect((await trainerA.get('/api/exercises?includeInactive=true')).body.items.some((e: { id: string }) => e.id === exId)).toBe(true);
     await trainerA.post(`/api/exercises/${exId}/restore`);
-  });
-
-  it('only admins upload 3D models, which must be real GLB files, and downloads need a login', async () => {
-    expect((await trainerA.post(`/api/exercises/${exId}/3d`).attach('file', glb(), 'm.glb')).status).toBe(403);
-    const fake = await adminA.post(`/api/exercises/${exId}/3d`).attach('file', Buffer.from('not a model at all, just text'), 'm.glb');
-    expect(fake.status).toBe(400);
-    expect(fake.body.error.code).toBe('INVALID_FILE');
-    const ok = await adminA.post(`/api/exercises/${exId}/3d`).field('credit', 'Test model').attach('file', glb(), 'model.glb');
-    expect(ok.status).toBe(201);
-    expect(ok.body.assets).toHaveLength(1);
-    expect(ok.body.assets[0]).toMatchObject({ credit: 'Test model', version: 1 });
-    const url = ok.body.assets[0].url as string;
-    expect((await request(app).get(url)).status).toBe(401);
-    const dl = await clientA.get(url);
-    expect(dl.status).toBe(200);
-    expect(dl.headers['content-type']).toContain('gltf-binary');
-    expect((await adminA.delete(`/api/exercises/${exId}/3d/${ok.body.assets[0].id}`)).body.assets).toHaveLength(0);
   });
 });
 

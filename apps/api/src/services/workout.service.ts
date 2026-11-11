@@ -9,7 +9,7 @@ import { audit, logActivity } from './audit.service';
 import { clientUserIdOf, notify } from './notification.service';
 
 const wxInclude = {
-  exercise: { select: { id: true, slug: true, name: true, primaryMuscles: true, assets: { where: { isActive: true }, select: { id: true }, take: 1 } } },
+  exercise: { select: { id: true, slug: true, name: true, primaryMuscles: true } },
 } satisfies Prisma.WorkoutExerciseInclude;
 const workoutInclude = {
   exercises: { orderBy: { order: 'asc' as const }, include: wxInclude },
@@ -24,7 +24,7 @@ const clientName = (w: { client: { user: { firstName: string; lastName: string }
 const toWx = (e: WxRow): WorkoutExerciseDto => ({
   id: e.id, exerciseId: e.exerciseId, name: e.exercise?.name ?? e.customName ?? 'Exercise', slug: e.exercise?.slug ?? null, section: e.section, order: e.order, sets: e.sets, reps: e.reps,
   weightKg: e.weightKg, restSec: e.restSec, tempo: e.tempo, technique: e.technique, supersetGroup: e.supersetGroup, notes: e.notes,
-  primaryMuscles: Array.isArray(e.exercise?.primaryMuscles) ? (e.exercise!.primaryMuscles as string[]) : [], hasAsset: (e.exercise?.assets.length ?? 0) > 0,
+  primaryMuscles: Array.isArray(e.exercise?.primaryMuscles) ? (e.exercise!.primaryMuscles as string[]) : [],
 });
 
 export const toWorkoutDto = (w: WorkoutRow): WorkoutDto => ({

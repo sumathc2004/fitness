@@ -2,9 +2,10 @@
   "name": "@gym/api",
   "version": "0.1.0",
   "private": true,
+  "main": "dist/vercel.js",
   "scripts": {
     "dev": "tsx watch --clear-screen=false src/server.ts",
-    "build": "tsup src/server.ts --format cjs --target node20 --clean --noExternal @gym/config,@gym/types,@gym/database",
+    "build": "tsup",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
@@ -14,6 +15,7 @@
     "@gym/database": "*",
     "@gym/types": "*",
     "@node-rs/argon2": "^2.0.2",
+    "@vercel/blob": "^2.9.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",

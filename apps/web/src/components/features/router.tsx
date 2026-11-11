@@ -32,7 +32,7 @@ function Feature({ role, slug }: { role: RoleName; slug: string[] }) {
       case 'messages': return <MessagesPage />;
       case 'notifications': return <NotificationsPage />;
       case 'attendance': return <AttendancePage isClient={isClient} />;
-      case 'exercise-3d': return <ExercisesPage mode="3d" />;
+      case 'exercises': return <ExercisesPage />;
       case 'body-analysis': return <BodyAnalysisPage isClient={isClient} />;
       case 'nutrition-calculator': return <NutritionCalculatorPage isClient={isClient} />;
       case 'measurements': return <MeasurementsPage isClient={isClient} />;
@@ -47,7 +47,6 @@ function Feature({ role, slug }: { role: RoleName; slug: string[] }) {
     switch (head) {
       case 'trainers': return <TrainersPage />;
       case 'clients': return sub ? <ClientDetailPage clientId={sub} base="/admin" /> : <ClientsPage base="/admin" />;
-      case 'exercises': return <ExercisesPage mode="manage" />;
       case 'workout-templates': return sub ? <WorkoutBuilderPage id={idOf(sub)} listHref="/admin/workout-templates" forceTemplate /> : <WorkoutTemplatesPage builderBase="/admin/workout-templates" />;
       case 'diet-templates': return sub ? <DietBuilderPage id={idOf(sub)} listHref="/admin/diet-templates" forceTemplate /> : <DietListPage templates builderBase="/admin/diet-templates" />;
       case 'nutrition-settings': return <NutritionSettingsPage />;

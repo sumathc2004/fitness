@@ -8,7 +8,7 @@ const display = Space_Grotesk({ subsets: ['latin'], variable: '--font-display', 
 
 export const metadata: Metadata = {
   title: { default: 'SVD Fitness OS — Train smart. Move better.', template: '%s · SVD Fitness OS' },
-  description: 'Personalized workouts, 3D exercise guidance, nutrition intelligence and measurable progress — all in one fitness platform.',
+  description: 'Personalized workouts, a complete exercise library, nutrition intelligence and measurable progress — all in one fitness platform.',
 };
 
 export const viewport: Viewport = { themeColor: '#0b0d0f', colorScheme: 'dark' };

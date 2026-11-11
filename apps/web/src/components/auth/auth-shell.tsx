@@ -2,10 +2,10 @@
 
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Box, ChartNoAxesCombined, ShieldCheck, Utensils } from 'lucide-react';
+import { BookOpen, ChartNoAxesCombined, ShieldCheck, Utensils } from 'lucide-react';
 
 const POINTS = [
-  { icon: Box, title: '3D exercise guidance', text: 'Rotate and zoom every movement before you lift.' },
+  { icon: BookOpen, title: 'Exercise guidance', text: 'Clear steps, muscles worked and mistakes to avoid.' },
   { icon: Utensils, title: 'Nutrition that adapts', text: 'Targets built from your body and your goal.' },
   { icon: ChartNoAxesCombined, title: 'Progress you can measure', text: 'Weight, composition, strength and consistency.' },
 ];

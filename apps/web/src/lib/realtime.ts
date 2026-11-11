@@ -6,11 +6,18 @@ import { io, type Socket } from 'socket.io-client';
 let socket: Socket | null = null;
 
 /**
- * One shared Socket.IO connection per tab. WebSockets can't go through the Next.js rewrite proxy, so the browser connects to the API
- * origin directly (NEXT_PUBLIC_SOCKET_URL, default: same host on port 4000). Auth rides on the session cookie, which is shared across ports.
+ * Where the Socket.IO server lives. WebSockets can't go through the Next.js rewrite proxy, so the browser connects to the API
+ * origin directly. NEXT_PUBLIC_SOCKET_URL wins; in development it defaults to the same host on port 4000. A production build
+ * without NEXT_PUBLIC_SOCKET_URL (e.g. Vercel, where the API is serverless and has no socket server) doesn't connect at all —
+ * pages fall back to their polling.
  */
-function connection(): Socket {
-  socket ??= io(process.env.NEXT_PUBLIC_SOCKET_URL || `${window.location.protocol}//${window.location.hostname}:4000`, { withCredentials: true, transports: ['polling', 'websocket'], reconnectionDelayMax: 10_000 });
+const SOCKET_URL = process.env.NEXT_PUBLIC_SOCKET_URL || (process.env.NODE_ENV === 'development' ? 'same-host:4000' : '');
+
+/** One shared Socket.IO connection per tab (null when real-time is disabled). Auth rides on the session cookie, shared across ports. */
+function connection(): Socket | null {
+  if (!SOCKET_URL) return null;
+  const url = SOCKET_URL === 'same-host:4000' ? `${window.location.protocol}//${window.location.hostname}:4000` : SOCKET_URL;
+  socket ??= io(url, { withCredentials: true, transports: ['polling', 'websocket'], reconnectionDelayMax: 10_000 });
   return socket;
 }
 
@@ -20,6 +27,7 @@ export function useSocketEvent<T = unknown>(event: string, handler: (payload: T)
   ref.current = handler;
   useEffect(() => {
     const s = connection();
+    if (!s) return;
     const fn = (p: T) => ref.current(p);
     s.on(event, fn);
     return () => { s.off(event, fn); };

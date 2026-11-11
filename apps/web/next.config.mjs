@@ -7,19 +7,24 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 // forceReload=true: Next has already loaded (and cached) apps/web's own env; without it this call is a silent no-op.
 nextEnv.loadEnvConfig(path.resolve(here, '../..'), process.env.NODE_ENV !== 'production', console, true);
 
-const API_URL = process.env.API_URL ?? 'http://localhost:4000';
+// API_URL set (local dev: the Express server on :4000) → /api/* is proxied to it.
+// API_URL unset (Vercel) → /api/* is served by the embedded Express app in src/pages/api/[...path].ts.
+const API_URL = process.env.API_URL;
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   transpilePackages: ['@gym/config', '@gym/types'],
-  // The browser only ever talks to the web origin; /api/* is proxied to the Express API.
-  // This keeps auth cookies first-party (no CORS, no third-party-cookie problems).
+  // The API bundle (apps/api/dist/vercel.js) and its native / file-reading dependencies are loaded at runtime, not bundled.
+  serverExternalPackages: ['@gym/api', '@prisma/client', '@node-rs/argon2', 'pdfkit', 'pino', 'pino-http', 'socket.io'],
+  // Trace runtime files from the monorepo root (node_modules is hoisted there); pdfkit reads its font metrics from disk.
+  outputFileTracingRoot: path.resolve(here, '../..'),
+  outputFileTracingIncludes: { '/api/[...path]': ['../../node_modules/pdfkit/js/data/**/*'] },
+  // The browser only ever talks to the web origin, which keeps auth cookies first-party (no CORS, no third-party-cookie problems).
   async rewrites() {
-    return [
-      { source: '/api/:path*', destination: `${API_URL}/api/:path*` },
-    ];
+    // beforeFiles: the proxy must win over the embedded /api route when an external API is configured.
+    return { beforeFiles: API_URL ? [{ source: '/api/:path*', destination: `${API_URL}/api/:path*` }] : [] };
   },
   async headers() {
     return [

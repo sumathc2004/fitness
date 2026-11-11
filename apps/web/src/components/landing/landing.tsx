@@ -1,18 +1,15 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useState } from 'react';
 import { motion, type Variants } from 'framer-motion';
 import {
-  ArrowRight, BadgeCheck, Box, CalendarCheck, ChartNoAxesCombined, ChevronDown, ClipboardList, Gauge, Menu, MessageSquare, Salad, ScanLine, Target, Users, X, FileText, Sparkles, MousePointer2,
+  ArrowRight, BadgeCheck, BookOpen, CalendarCheck, ChartNoAxesCombined, ChevronDown, ClipboardList, Gauge, Menu, MessageSquare, Salad, ScanLine, Target, Users, X, FileText, Sparkles,
 } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
-import { Progress, Skeleton } from '@/components/ui/misc';
+import { Progress } from '@/components/ui/misc';
 import { GrowthAreaChart } from '@/components/dashboard/charts';
 import { cn } from '@/lib/utils';
-
-const Dumbbell3D = dynamic(() => import('./dumbbell-3d'), { ssr: false, loading: () => <Skeleton className="size-full rounded-2xl" /> });
 
 const fade: Variants = { hidden: { opacity: 0, y: 24 }, show: (i: number = 0) => ({ opacity: 1, y: 0, transition: { duration: 0.6, delay: i * 0.08, ease: 'easeOut' } }) };
 const reveal = { initial: 'hidden', whileInView: 'show', viewport: { once: true, margin: '-80px' } } as const;
@@ -32,7 +29,7 @@ function SectionHead({ eyebrow, title, text }: { eyebrow: string; title: React.R
 }
 
 // ───────────────────────── header
-const LINKS = [['Features', '#features'], ['3D guidance', '#guidance'], ['Nutrition', '#nutrition'], ['Roles', '#roles'], ['Membership', '#pricing'], ['FAQ', '#faq']] as const;
+const LINKS = [['Features', '#features'], ['Nutrition', '#nutrition'], ['Roles', '#roles'], ['Membership', '#pricing'], ['FAQ', '#faq']] as const;
 
 function Header() {
   const [open, setOpen] = useState(false);
@@ -102,7 +99,7 @@ function Hero() {
           Train smart.<br />Move better.<br /><span className="text-gradient">Become stronger.</span>
         </motion.h1>
         <motion.p variants={fade} custom={2} initial="hidden" animate="show" className="mx-auto mt-7 max-w-2xl text-lg text-muted-foreground sm:text-xl">
-          Personalized workouts, 3D exercise guidance, nutrition intelligence and measurable progress — all in one fitness platform.
+          Personalized workouts, a complete exercise library, nutrition intelligence and measurable progress — all in one fitness platform.
         </motion.p>
         <motion.div variants={fade} custom={3} initial="hidden" animate="show" className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <a href="#pricing" className={cn(buttonVariants({ size: 'lg' }), 'group rounded-full px-8 uppercase tracking-wide')}>Get started <ArrowRight className="transition-transform group-hover:translate-x-1" /></a>
@@ -115,7 +112,7 @@ function Hero() {
 }
 
 function Marquee() {
-  const items = ['Personal workouts', '3D exercise models', 'Nutrition targets', 'Body analysis', 'Progress tracking', 'Attendance & QR', 'Trainer chat', 'PDF reports'];
+  const items = ['Personal workouts', 'Exercise library', 'Nutrition targets', 'Body analysis', 'Progress tracking', 'Attendance & QR', 'Trainer chat', 'PDF reports'];
   return (
     <div className="overflow-hidden border-y border-white/[0.06] bg-white/[0.015] py-5" aria-hidden>
       <div className="flex w-max animate-marquee gap-12 whitespace-nowrap font-display text-sm font-semibold uppercase tracking-[0.2em] text-muted-foreground">
@@ -128,7 +125,7 @@ function Marquee() {
 // ───────────────────────── features
 const FEATURES = [
   { icon: ClipboardList, title: 'Workout builder', text: 'Sets, reps, weight, rest, tempo, supersets and dropsets — with drag-and-drop ordering and reusable templates.' },
-  { icon: Box, title: '3D exercise library', text: 'Rotate, zoom and study every movement, with muscles worked, instructions and common mistakes.' },
+  { icon: BookOpen, title: 'Exercise library', text: 'Every movement with the muscles worked, step-by-step instructions, equipment and common mistakes.' },
   { icon: Salad, title: 'Nutrition intelligence', text: 'Calories, protein, carbs, fat and fibre calculated from the body profile and goal — adjustable by the trainer.' },
   { icon: Gauge, title: 'Body analysis', text: 'BMI, estimated body fat, lean mass, BMR and maintenance calories, tracked over time.' },
   { icon: Target, title: 'Goal engine', text: 'Fat loss, recomposition or muscle building — a recommendation with the reasons behind it.' },
@@ -151,31 +148,6 @@ function Features() {
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{f.text}</p>
           </motion.div>
         ))}
-      </div>
-    </section>
-  );
-}
-
-// ───────────────────────── 3D
-function Guidance() {
-  return (
-    <section id="guidance" className="relative overflow-hidden border-y border-white/[0.06] bg-surface/50 py-28">
-      <div className="mx-auto grid max-w-6xl items-center gap-12 px-6 lg:grid-cols-2">
-        <motion.div variants={fade} {...reveal}>
-          <Eyebrow><Box className="size-3.5" /> 3D exercise guidance</Eyebrow>
-          <h2 className="mt-5 font-display text-4xl font-bold leading-[1.1] tracking-tight sm:text-5xl">See the movement <span className="text-gradient">before you lift it</span></h2>
-          <p className="mt-5 text-lg text-muted-foreground">Every exercise gets an interactive 3D model your clients can rotate and zoom, next to the muscles worked, step-by-step instructions and the mistakes to avoid.</p>
-          <ul className="mt-8 space-y-3.5">
-            {['Interactive GLB/glTF models with animation', 'Primary and secondary muscles at a glance', 'Instructions, equipment and difficulty', 'Add new exercises from the admin panel'].map((t) => (
-              <li key={t} className="flex items-center gap-3 text-[15px]"><BadgeCheck className="size-5 shrink-0 text-primary" />{t}</li>
-            ))}
-          </ul>
-          <p className="mt-8 text-xs text-muted-foreground">The viewer on the right is a live 3D preview. The full exercise library ships in Phase 5.</p>
-        </motion.div>
-        <motion.div variants={fade} custom={2} {...reveal} className="relative aspect-square w-full overflow-hidden rounded-3xl border border-white/[0.08] bg-[radial-gradient(circle_at_50%_40%,hsl(var(--primary)/0.14),transparent_65%)]">
-          <Dumbbell3D />
-          <span className="pointer-events-none absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-background/70 px-3.5 py-1.5 text-xs font-medium text-muted-foreground backdrop-blur"><MousePointer2 className="size-3.5" /> Drag to rotate</span>
-        </motion.div>
       </div>
     </section>
   );
@@ -244,7 +216,7 @@ function Management() {
 const ROLES = [
   { icon: Users, name: 'Gym owners', points: ['Trainers, clients, memberships and revenue in one dashboard', 'Attention list across the whole gym', 'Audit trail of every important action'] },
   { icon: ClipboardList, name: 'Trainers', points: ['Build workouts and diets with live macro totals', 'Body analysis and goal recommendations to review', 'Know instantly who is slipping'] },
-  { icon: ScanLine, name: 'Members', points: ['Today’s workout with a 3D demo for every move', 'Nutrition, water, sleep and habits in one place', 'Progress charts that show the work paying off'] },
+  { icon: ScanLine, name: 'Members', points: ['Today’s workout with instructions for every move', 'Nutrition, water, sleep and habits in one place', 'Progress charts that show the work paying off'] },
 ];
 
 function Roles() {
@@ -267,7 +239,7 @@ function Roles() {
 // ───────────────────────── pricing
 const PLANS = [
   { name: 'Basic', price: '₹1,999', text: 'Everything to start training with structure.', feats: ['Gym floor access', 'Workout tracking', 'Progress & measurements'], hot: false },
-  { name: 'Pro', price: '₹3,999', text: 'For regulars who want coaching and nutrition.', feats: ['Everything in Basic', 'Unlimited group classes', 'Nutrition plans & tracking', '3D exercise library'], hot: true },
+  { name: 'Pro', price: '₹3,999', text: 'For regulars who want coaching and nutrition.', feats: ['Everything in Basic', 'Unlimited group classes', 'Nutrition plans & tracking', 'Full exercise library'], hot: true },
   { name: 'Elite', price: '₹6,999', text: 'The full experience with a personal trainer.', feats: ['Everything in Pro', 'Personal trainer', 'Body analysis & goal engine', '24/7 access'], hot: false },
 ];
 
@@ -300,7 +272,7 @@ const FAQ = [
   ['Do the nutrition targets replace advice from my doctor?', 'No. Targets are coaching guidance based on your profile and goal. If you have a medical condition, follow your doctor’s advice.'],
   ['Who can see my progress photos and data?', 'Only you, your assigned trainer and the gym’s administrators. Access is enforced on the server, not just hidden in the interface.'],
   ['Can I use it on my phone?', 'Yes. The whole platform is responsive and designed to work well on a phone in the gym.'],
-  ['Can the gym add its own exercises and 3D models?', 'Yes. Admins and trainers can add exercises and upload GLB models; the library grows with your gym.'],
+  ['Can the gym add its own exercises?', 'Yes. Admins and trainers can add exercises with instructions, muscles worked and equipment; the library grows with your gym.'],
 ];
 
 function Faq() {
@@ -352,7 +324,6 @@ export function Landing() {
         <Hero />
         <Marquee />
         <Features />
-        <Guidance />
         <Nutrition />
         <Management />
         <Roles />

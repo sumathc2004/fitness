@@ -17,7 +17,8 @@ export async function GET(req: NextRequest) {
   };
   if (!refresh) return toLogin();
 
-  const api = await fetch(`${process.env.API_URL ?? 'http://localhost:4000'}/api/auth/refresh`, {
+  // External API in development; on Vercel the API is embedded in this deployment, i.e. our own origin.
+  const api = await fetch(`${process.env.API_URL || req.nextUrl.origin}/api/auth/refresh`, {
     method: 'POST',
     headers: { cookie: `${AUTH.refreshCookie}=${refresh}` },
     cache: 'no-store',

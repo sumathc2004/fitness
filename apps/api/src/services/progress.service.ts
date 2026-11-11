@@ -127,12 +127,12 @@ export async function listPhotos(req: Request, clientId: string) {
   return rows.map(photoDto);
 }
 
-/** Photos are private: only the owner, their trainer or an admin can stream them. */
+/** Photos are private: only the owner, their trainer or an admin can stream them. Returns the storage key. */
 export async function photoFile(req: Request, id: string) {
   const p = await prisma.progressPhoto.findUnique({ where: { id }, select: { clientId: true, storageKey: true } });
   if (!p?.storageKey) throw notFound('Photo not found');
   await assertCanAccessClient(req, p.clientId);
-  return storage.pathFor!(p.storageKey);
+  return p.storageKey;
 }
 
 export async function deletePhoto(req: Request, id: string) {

@@ -26,6 +26,8 @@ const schema = z.object({
   SMTP_PASS: z.string().optional().default(''),
   MAIL_FROM: z.string().default('Gym Platform <no-reply@gym.local>'),
   DEVICE_API_KEY: z.string().optional().default(''),
+  // Vercel Cron sends `Authorization: Bearer <CRON_SECRET>` to /api/cron/reminders. Empty = endpoint disabled.
+  CRON_SECRET: z.string().optional().default(''),
   LOG_LEVEL: z.string().default('info'),
 });
 

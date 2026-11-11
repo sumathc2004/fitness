@@ -49,12 +49,13 @@ export function SimpleBarChart({ data, color = 'hsl(var(--chart-2))', fmt = (n: 
   );
 }
 
-export function WeightLineChart({ data }: { data: Array<{ date: string; weightKg: number }> }) {
+/** `height="100%"` fills a parent that has a definite height (e.g. a flex/grid cell). */
+export function WeightLineChart({ data, height = 200 }: { data: Array<{ date: string; weightKg: number }>; height?: number | `${number}%` }) {
   const rows = data.map((d) => ({ label: new Date(d.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }), value: d.weightKg }));
   const min = Math.floor(Math.min(...rows.map((r) => r.value)) - 1);
   const max = Math.ceil(Math.max(...rows.map((r) => r.value)) + 1);
   return (
-    <ResponsiveContainer width="100%" height={200}>
+    <ResponsiveContainer width="100%" height={height}>
       <LineChart data={rows} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
         <CartesianGrid vertical={false} stroke="hsl(0 0% 100% / 0.05)" />
         <XAxis dataKey="label" {...axis} />

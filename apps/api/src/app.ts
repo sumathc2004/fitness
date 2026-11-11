@@ -1,3 +1,4 @@
+import crypto from 'node:crypto';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express from 'express';
@@ -5,13 +6,15 @@ import helmet from 'helmet';
 import pinoHttp from 'pino-http';
 import { prisma } from '@gym/database';
 import { env, isTest } from './config/env';
+import { notFound } from './lib/errors';
 import { logger } from './lib/logger';
 import { errorHandler, notFoundHandler } from './middleware/error';
+import { runReminders } from './services/jobs.service';
 import { globalLimiter, originGuard } from './middleware/security';
 import { authRouter } from './routes/auth.routes';
 import { adminRouter } from './routes/dashboards.routes';
 import { clientsRouter, staffPasswordRouter, trainersRouter } from './routes/people.routes';
-import { assetsRouter, exercisesRouter } from './routes/exercises.routes';
+import { exercisesRouter } from './routes/exercises.routes';
 import { bodyAnalysisRouter, dietLogsRouter, dietsRouter, foodsRouter, mealsRouter, nutritionRouter } from './routes/nutrition.routes';
 import { analyticsRouter, attendanceRouter, habitsRouter, membershipsRouter, messagesRouter, notificationsRouter, paymentsRouter, progressRouter, reportsRouter, subscriptionsRouter } from './routes/ops.routes';
 import { usersRouter } from './routes/users.routes';
@@ -43,6 +46,16 @@ export function createApp() {
     }
   });
 
+  // Serverless deployments have no long-running scheduler; Vercel Cron calls this instead (see apps/web/vercel.json).
+  app.get('/api/cron/reminders', async (req, res) => {
+    const expected = Buffer.from(`Bearer ${env.CRON_SECRET}`);
+    const given = Buffer.from(req.get('authorization') ?? '');
+    if (!env.CRON_SECRET || given.length !== expected.length || !crypto.timingSafeEqual(given, expected)) throw notFound();
+    const result = await runReminders();
+    logger.info(result, 'reminder sweep done (cron)');
+    res.json({ ok: true, ...result });
+  });
+
   app.use('/api/auth', authRouter);
   app.use('/api/users', usersRouter);
   app.use('/api/users', staffPasswordRouter);
@@ -50,7 +63,6 @@ export function createApp() {
   app.use('/api/trainers', trainersRouter);
   app.use('/api/clients', clientsRouter);
   app.use('/api/exercises', exercisesRouter);
-  app.use('/api/assets', assetsRouter);
   app.use('/api/workouts', workoutsRouter);
   app.use('/api/workout-sessions', sessionsRouter);
   app.use('/api/workout-sets', setsRouter);

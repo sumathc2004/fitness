@@ -4,8 +4,9 @@ import multer from 'multer';
 import { z } from 'zod';
 import { prisma } from '@gym/database';
 import { env } from '../config/env';
-import { AppError, forbidden, unauthorized } from '../lib/errors';
+import { AppError, forbidden, notFound, unauthorized } from '../lib/errors';
 import { pageQuery } from '../lib/pagination';
+import { sendStored } from '../lib/storage';
 import { authenticate, requirePermission, requireRole } from '../middleware/auth';
 import { validate } from '../middleware/validate';
 import { visibleClientIds } from '../services/access.service';
@@ -74,9 +75,8 @@ progressRouter.post('/photos', (req, res, next) => {
   res.status(201).json(await progress.addPhoto(req, target(req, clientQuery.parse(req.query).clientId), req.file, meta));
 });
 progressRouter.get('/photos/:id/file', async (req, res) => {
-  const file = await progress.photoFile(req, id(req.params.id));
-  res.setHeader('Cache-Control', 'private, max-age=300');
-  res.sendFile(file, (err) => { if (err && !res.headersSent) res.status(404).json({ error: { code: 'NOT_FOUND', message: 'Photo not found' } }); });
+  const key = await progress.photoFile(req, id(req.params.id));
+  if (!(await sendStored(res, key, 'private, max-age=300'))) throw notFound('Photo not found');
 });
 progressRouter.delete('/photos/:id', async (req, res) => { await progress.deletePhoto(req, id(req.params.id)); res.json({ ok: true }); });
 

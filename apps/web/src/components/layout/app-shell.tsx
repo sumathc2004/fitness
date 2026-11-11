@@ -22,7 +22,7 @@ function Brand() {
 }
 
 function NavLinks({ role, onNavigate }: { role: RoleName; onNavigate?: () => void }) {
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '';
   const items = NAV[role];
   const groups = [...new Set(items.map((n) => n.group))];
   return (
@@ -59,7 +59,7 @@ function NavLinks({ role, onNavigate }: { role: RoleName; onNavigate?: () => voi
 
 export function AppShell({ role, children }: { role: RoleName; children: React.ReactNode }) {
   const { user, loading, logout } = useAuth();
-  const pathname = usePathname();
+  const pathname = usePathname() ?? '';
   const [open, setOpen] = useState(false);
   const RoleIcon = ROLE_ICON[role];
   const current = findNav(role, pathname);

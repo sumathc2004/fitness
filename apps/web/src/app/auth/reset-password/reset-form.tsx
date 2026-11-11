@@ -13,7 +13,7 @@ import { Field, Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 
 export function ResetForm() {
-  const token = useSearchParams().get('token') ?? '';
+  const token = useSearchParams()?.get('token') ?? '';
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
   const [busy, setBusy] = useState(false);
