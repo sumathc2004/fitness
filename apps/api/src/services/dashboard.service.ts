@@ -215,7 +215,7 @@ export async function clientDashboard(clientId: string): Promise<ClientDashboard
     prisma.workout.findFirst({
       where: { clientId, isTemplate: false, scheduledDate: today, status: { not: 'DRAFT' } },
       select: {
-        id: true, name: true, status: true,
+        id: true, name: true, status: true, estimatedMin: true,
         exercises: { orderBy: { order: 'asc' }, select: { id: true, sets: true, reps: true, restSec: true, customName: true, exercise: { select: { name: true } } } },
       },
     }),
@@ -254,6 +254,7 @@ export async function clientDashboard(clientId: string): Promise<ClientDashboard
           id: todays.id,
           name: todays.name,
           status: todays.status,
+          estimatedMin: todays.estimatedMin,
           exercises: todays.exercises.map((e) => ({ id: e.id, name: e.exercise?.name ?? e.customName ?? 'Exercise', sets: e.sets, reps: e.reps, restSec: e.restSec })),
         }
       : null,

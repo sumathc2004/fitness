@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { Droplets, Footprints, Heart, Moon, Trash2 } from 'lucide-react';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -7,6 +9,7 @@ import { useApi } from '@/lib/use-api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress, Skeleton } from '@/components/ui/misc';
+import { cn } from '@/lib/utils';
 import { EmptyState, ErrorState, Section } from '@/components/dashboard/primitives';
 import { del, FormRow, fmtTime, PageHeader, put, post, Select, Textarea, today, useAction, num, Chip } from '@/components/kit/kit';
 
@@ -41,6 +44,29 @@ function useDay(clientId?: string | null) {
   return { day, hist, reloadAll: () => { day.reload(); hist.reload(); } };
 }
 
+/** Daily Habits groups three pages; this switches between them (the sidebar shows one "Daily Habits" entry). */
+const HABIT_TABS = [
+  { label: 'Habits', href: '/client/habits', icon: Heart },
+  { label: 'Water', href: '/client/water', icon: Droplets },
+  { label: 'Sleep', href: '/client/sleep', icon: Moon },
+];
+function HabitTabs() {
+  const pathname = usePathname() ?? '';
+  return (
+    <nav className="flex gap-1 rounded-xl border border-white/[0.06] bg-white/[0.02] p-1" aria-label="Daily habits">
+      {HABIT_TABS.map(({ label, href, icon: Icon }) => {
+        const active = pathname === href;
+        return (
+          <Link key={href} href={href} aria-current={active ? 'page' : undefined}
+            className={cn('inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors', active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-white/[0.05] hover:text-foreground')}>
+            <Icon className="size-4" /> {label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
 export function WaterPage() {
   const { day, hist, reloadAll } = useDay();
   const { busy, run } = useAction();
@@ -50,7 +76,7 @@ export function WaterPage() {
   const w = day.data?.water;
   return (
     <div className="space-y-6">
-      <PageHeader description="Log water through the day against your target." />
+      <PageHeader description="Log water through the day against your target." actions={<HabitTabs />} />
       <Section title="Today">
         {!w ? <Skeleton className="h-40" /> : (
           <div className="space-y-5">
@@ -81,7 +107,7 @@ export function SleepPage() {
   if (day.error) return <ErrorState message={day.error.message} onRetry={day.reload} />;
   return (
     <div className="space-y-6">
-      <PageHeader description="Log last night’s sleep." />
+      <PageHeader description="Log last night’s sleep." actions={<HabitTabs />} />
       <Section title="Last night" description={s ? `Logged: ${s.hours} h${s.quality ? ` · quality ${s.quality}/5` : ''}` : 'Nothing logged yet today.'}>
         <form className="grid gap-4 sm:grid-cols-3" onSubmit={async (e) => { e.preventDefault(); const h = num(hours); if (h && await run(() => put('/habits/sleep', { date: today(), hours: h, quality: num(quality), notes: notes || null }), 'Sleep saved')) { setHours(''); setNotes(''); reloadAll(); } }}>
           <FormRow label="Hours slept">{(id) => <Input id={id} type="number" step="0.25" min={0.5} max={20} required value={hours} onChange={(e) => setHours(e.target.value)} placeholder={s ? String(s.hours) : '7.5'} />}</FormRow>
@@ -103,7 +129,7 @@ export function HabitsPage() {
   const save = async (key: string, body: { completed?: boolean; value?: number | null }) => { if (await run(() => put('/habits/habit', { date: today(), habitKey: key, ...body }))) reloadAll(); };
   return (
     <div className="space-y-6">
-      <PageHeader description="Small daily habits compound. Tick them off or log the number." />
+      <PageHeader description="Small daily habits compound. Tick them off or log the number." actions={<HabitTabs />} />
       <Section title="Today">
         {!day.data ? <Skeleton className="h-40" /> : (
           <ul className="divide-y divide-white/[0.05]">

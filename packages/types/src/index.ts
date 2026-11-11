@@ -151,6 +151,8 @@ export interface ClientDashboard {
     id: string;
     name: string;
     status: string;
+    /** Trainer-set duration; null when not set (the UI estimates from sets and rest). */
+    estimatedMin: number | null;
     exercises: Array<{ id: string; name: string; sets: number; reps: string; restSec: number }>;
   } | null;
   nutrition: {

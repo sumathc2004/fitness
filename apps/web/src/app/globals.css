@@ -2,14 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Design tokens — dark graphite foundation, white type, ONE strong accent (electric lime). */
+/* Design tokens — dark graphite foundation (#0B0D0F, cards #15191C), white type, ONE strong accent per role:
+   client = electric lime #C6FF25 (the brand default), trainer = electric blue, admin = violet (see [data-role] below). */
 @layer base {
   :root {
-    --background: 220 14% 5%;
+    --background: 210 15% 5%;
     --foreground: 210 20% 97%;
-    --surface: 220 13% 8%;
-    --elevated: 220 12% 11%;
-    --card: 220 13% 8%;
+    --surface: 208 14% 7%;
+    --elevated: 206 13% 12%;
+    --card: 206 14% 10%;
     --card-foreground: 210 20% 97%;
     --muted: 220 11% 14%;
     --muted-foreground: 215 10% 60%;
@@ -17,20 +18,35 @@
     --secondary-foreground: 210 20% 92%;
     --border: 220 10% 16%;
     --input: 220 10% 18%;
-    --ring: 74 100% 59%;
-    --primary: 74 100% 59%;
+    --ring: 76 100% 57%;
+    --primary: 76 100% 57%;
     --primary-foreground: 220 14% 6%;
     --destructive: 352 100% 68%;
     --destructive-foreground: 210 20% 98%;
     --good: 148 70% 55%;
     --monitor: 41 100% 56%;
     --attention: 352 100% 68%;
-    --chart-1: 74 100% 59%;
+    --chart-1: 76 100% 57%;
     --chart-2: 173 64% 56%;
     --chart-3: 41 100% 56%;
     --chart-4: 255 100% 74%;
     --chart-5: 352 100% 68%;
     color-scheme: dark;
+  }
+
+  /* Role accents. AppShell sets data-role on <html> (so modals/portals follow) and on its own wrapper (first paint).
+     Each role swaps the accent and any chart colour that would clash with it. */
+  [data-role='TRAINER'] {
+    --primary: 199 95% 60%;
+    --ring: 199 95% 60%;
+    --chart-1: 199 95% 60%;
+    --chart-2: 76 100% 57%;
+  }
+  [data-role='SUPER_ADMIN'] {
+    --primary: 258 95% 74%;
+    --ring: 258 95% 74%;
+    --chart-1: 258 95% 74%;
+    --chart-4: 76 100% 57%;
   }
 
   * { @apply border-border; }

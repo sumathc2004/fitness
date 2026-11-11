@@ -1,6 +1,6 @@
 import {
-  Activity, BarChart3, Bell, Calculator, CalendarDays, CalendarCheck, ClipboardList, CreditCard, Dumbbell, FileText, Flame, Gauge, Heart, Image as ImageIcon, LayoutDashboard,
-  Layers, LineChart, ListChecks, MessageSquare, Moon, Ruler, ScrollText, Settings, Salad, Droplets, ShieldCheck, Sparkles, Ticket, UserCog, Users, Utensils, Receipt, BookOpen, Wallet, UserCircle,
+  Activity, BarChart3, Bell, Calculator, CalendarDays, CalendarCheck, ClipboardList, CreditCard, Dumbbell, FileText, Gauge, Heart, Image as ImageIcon, LayoutDashboard,
+  Layers, LineChart, ListChecks, MessageSquare, Ruler, ScrollText, Settings, Salad, ShieldCheck, Sparkles, Ticket, UserCog, Users, Utensils, Receipt, BookOpen, Wallet, UserCircle,
   type LucideIcon,
 } from 'lucide-react';
 import type { RoleName } from '@gym/config';
@@ -10,9 +10,13 @@ export interface NavItem {
   href: string;
   icon: LucideIcon;
   group: string;
+  /** Other paths that belong to this item (the item shows as active and its label titles the page). */
+  match?: string[];
+  /** Reachable from the header (bell, profile menu) rather than the sidebar; still used for page titles. */
+  hidden?: boolean;
 }
 
-const i = (label: string, href: string, icon: LucideIcon, group: string): NavItem => ({ label, href, icon, group });
+const i = (label: string, href: string, icon: LucideIcon, group: string, extra: Pick<NavItem, 'match' | 'hidden'> = {}): NavItem => ({ label, href, icon, group, ...extra });
 
 export const NAV: Record<RoleName, NavItem[]> = {
   SUPER_ADMIN: [
@@ -56,22 +60,20 @@ export const NAV: Record<RoleName, NavItem[]> = {
   ],
   CLIENT: [
     i('Dashboard', '/client', LayoutDashboard, 'Overview'),
-    i('Today’s Workout', '/client/workout', Flame, 'Training'),
+    i('Workouts', '/client/workout', Dumbbell, 'Training'),
     i('Workout History', '/client/workout-history', ListChecks, 'Training'),
     i('Exercise Library', '/client/exercises', BookOpen, 'Training'),
     i('My Diet', '/client/diet', Utensils, 'Nutrition'),
     i('Nutrition Calculator', '/client/nutrition-calculator', Calculator, 'Nutrition'),
     i('Body Analysis', '/client/body-analysis', Gauge, 'Analysis'),
-    i('Progress', '/client/progress', LineChart, 'Tracking'),
-    i('Measurements', '/client/measurements', Ruler, 'Tracking'),
-    i('Progress Photos', '/client/progress-photos', ImageIcon, 'Tracking'),
+    i('Progress', '/client/progress', LineChart, 'Analysis'),
+    i('Measurements', '/client/measurements', Ruler, 'Analysis'),
+    i('Progress Photos', '/client/progress-photos', ImageIcon, 'Analysis'),
     i('Attendance', '/client/attendance', CalendarCheck, 'Tracking'),
-    i('Water', '/client/water', Droplets, 'Habits'),
-    i('Sleep', '/client/sleep', Moon, 'Habits'),
-    i('Habits', '/client/habits', Heart, 'Habits'),
+    i('Daily Habits', '/client/habits', Heart, 'Tracking', { match: ['/client/water', '/client/sleep'] }),
     i('Messages', '/client/messages', MessageSquare, 'Communication'),
-    i('Notifications', '/client/notifications', Bell, 'Communication'),
-    i('Profile', '/client/settings', UserCircle, 'Account'),
+    i('Notifications', '/client/notifications', Bell, 'Communication', { hidden: true }),
+    i('Profile', '/client/settings', UserCircle, 'Account', { hidden: true }),
   ],
 };
 
@@ -80,7 +82,22 @@ export const ROLE_ICON: Record<RoleName, LucideIcon> = { SUPER_ADMIN: ShieldChec
 // Re-exported so pages can reference icons without importing lucide everywhere.
 export { Wallet, Receipt };
 
+const under = (pathname: string, href: string) => pathname === href || pathname.startsWith(`${href}/`);
+
+/** Whether a nav item is the current page (its own href or one of its `match` paths). The role home only matches exactly. */
+export function isActive(n: NavItem, pathname: string, home: string): boolean {
+  if (n.href === home) return pathname === home;
+  return [n.href, ...(n.match ?? [])].some((h) => under(pathname, h));
+}
+
+/** Whether a path is a page of this role's console (an item's own href or one of its `match` paths). */
+export function isRoutable(role: RoleName, path: string): boolean {
+  return NAV[role].some((n) => n.href === path || (n.match ?? []).includes(path));
+}
+
 export function findNav(role: RoleName, pathname: string): NavItem | undefined {
   // longest matching href wins so /admin/audit-logs beats /admin
-  return [...NAV[role]].sort((a, b) => b.href.length - a.href.length).find((n) => pathname === n.href || pathname.startsWith(`${n.href}/`));
+  return [...NAV[role]]
+    .sort((a, b) => b.href.length - a.href.length)
+    .find((n) => [n.href, ...(n.match ?? [])].some((h) => under(pathname, h)));
 }
