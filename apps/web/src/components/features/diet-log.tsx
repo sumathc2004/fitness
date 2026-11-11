@@ -110,27 +110,30 @@ export function NutritionDay({ clientId }: { clientId?: string | null }) {
 
   if (error) return <ErrorState message={error.message} onRetry={reload} />;
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+    <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
       <Section title={d?.planName ?? 'Meals'} description={d ? (d.planName ? 'Planned meals for the day' : 'No active diet plan yet') : undefined}
         action={<div className="flex items-center gap-2"><input type="date" value={date} max={today()} onChange={(e) => setDate(e.target.value || today())} className="h-9 rounded-md border border-input bg-white/[0.03] px-3 text-sm" aria-label="Date" />{!readOnly && <Button size="sm" onClick={() => setExtra(true)}><Plus /> Extra meal</Button>}</div>}>
         {loading && !d ? <Skeleton className="h-64" /> : !d || d.meals.length === 0 ? <EmptyState icon={Utensils} title="No meals for this day" description={readOnly ? 'No plan is active and nothing was logged.' : 'Your trainer hasn’t assigned a plan yet. You can still log what you eat with “Extra meal”.'} /> : (
-          <ul className="space-y-3">
-            {d.meals.map((m) => (
-              <li key={m.key} className={cn('rounded-lg border p-4', m.status === 'COMPLETED' ? 'border-good/25 bg-good/[0.04]' : 'border-white/[0.06]')}>
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div><div className="flex flex-wrap items-center gap-2"><p className="font-display font-semibold">{m.name}</p>{statusBadge(m.status)}{m.custom && <Badge variant="muted">extra</Badge>}</div>
-                    <p className="mt-0.5 text-xs text-muted-foreground">{titleCase(m.mealType)}{m.timeOfDay ? ` · ${m.timeOfDay}` : ''}</p></div>
-                  <div className="text-right text-xs text-muted-foreground"><p className="text-sm font-semibold text-foreground">{Math.round((m.planned ?? m.consumed).calories)} kcal</p>P{Math.round((m.planned ?? m.consumed).proteinG)} · C{Math.round((m.planned ?? m.consumed).carbsG)} · F{Math.round((m.planned ?? m.consumed).fatG)}</div>
-                </div>
-                {!readOnly && (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {m.custom ? <Button size="sm" variant="ghost" loading={busy} onClick={async () => { const r = await run(() => del<DailyNutritionDto>(`/meals/${m.mealLogId}`)); if (r) setState(r); }}><Trash2 /> Remove</Button> : m.status === 'PENDING' ? (
-                      <><Button size="sm" loading={busy} onClick={() => void setLog(m, 'COMPLETED')}><Check /> Ate it</Button><Button size="sm" variant="outline" onClick={() => void setLog(m, 'SKIPPED')}><SkipForward /> Skip</Button></>
-                    ) : <Button size="sm" variant="ghost" onClick={() => void setLog(m, 'PENDING')}><Undo2 /> Undo</Button>}
+          <ul className="space-y-2">
+            {d.meals.map((m) => {
+              const mac = m.planned ?? m.consumed;
+              return (
+                <li key={m.key} className={cn('flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border px-4 py-2.5', m.status === 'COMPLETED' ? 'border-good/25 bg-good/[0.04]' : 'border-white/[0.06]')}>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2"><p className="font-display font-semibold">{m.name}</p>{statusBadge(m.status)}{m.custom && <Badge variant="muted">extra</Badge>}</div>
+                    <p className="text-xs text-muted-foreground">{titleCase(m.mealType)}{m.timeOfDay ? ` · ${m.timeOfDay}` : ''}</p>
                   </div>
-                )}
-              </li>
-            ))}
+                  <div className="text-right text-xs leading-tight text-muted-foreground"><p className="text-sm font-semibold text-foreground">{Math.round(mac.calories)} kcal</p>P{Math.round(mac.proteinG)} · C{Math.round(mac.carbsG)} · F{Math.round(mac.fatG)}</div>
+                  {!readOnly && (
+                    <div className="flex shrink-0 gap-1.5">
+                      {m.custom ? <Button size="sm" variant="ghost" loading={busy} onClick={async () => { const r = await run(() => del<DailyNutritionDto>(`/meals/${m.mealLogId}`)); if (r) setState(r); }}><Trash2 /> Remove</Button> : m.status === 'PENDING' ? (
+                        <><Button size="sm" loading={busy} onClick={() => void setLog(m, 'COMPLETED')}><Check /> Ate it</Button><Button size="sm" variant="outline" onClick={() => void setLog(m, 'SKIPPED')}><SkipForward /> Skip</Button></>
+                      ) : <Button size="sm" variant="ghost" onClick={() => void setLog(m, 'PENDING')}><Undo2 /> Undo</Button>}
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
       </Section>

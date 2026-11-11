@@ -113,10 +113,10 @@ export function DietBuilderPage({ id, listHref, forceTemplate }: { id?: string; 
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <Link href={listHref} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" /> Back</Link>
-      <div className="grid gap-6 xl:grid-cols-[1fr_340px]">
-        <div className="space-y-6">
+      <div className="grid gap-4 xl:grid-cols-[1fr_340px]">
+        <div className="space-y-4">
           <Section title="Plan details">
             <div className="grid gap-4 sm:grid-cols-2">
               <FormRow label="Plan name" error={errs.name} className="sm:col-span-2">{(i) => <Input id={i} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. 2,200 kcal cut" />}</FormRow>

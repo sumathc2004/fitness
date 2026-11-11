@@ -69,12 +69,13 @@ function SideNav({ role, collapsed = false, onNavigate }: { role: RoleName; coll
 }
 
 /** Pages of the current section, as tabs. */
-function SectionTabs({ role, section }: { role: RoleName; section: NavSection }) {
+/** Pages of the current section, as tabs: inside the header on desktop (saves a row), as a strip below it on phones. */
+function SectionTabs({ role, section, inline = false }: { role: RoleName; section: NavSection; inline?: boolean }) {
   const pathname = usePathname() ?? '';
   const page = findNav(role, pathname);
   return (
-    <div className="no-scrollbar shrink-0 overflow-x-auto border-b border-white/[0.06] bg-background/60 px-4 backdrop-blur-xl sm:px-8">
-      <nav className="mx-auto flex max-w-[1280px] gap-1 py-2" aria-label={`${section.label} pages`}>
+    <div className={inline ? 'no-scrollbar hidden min-w-0 flex-1 overflow-x-auto lg:block' : 'no-scrollbar shrink-0 overflow-x-auto border-b border-white/[0.06] bg-background/60 px-4 backdrop-blur-xl sm:px-8 lg:hidden'}>
+      <nav className={cn('flex gap-1', inline ? 'py-1' : 'mx-auto max-w-[1280px] py-2')} aria-label={`${section.label} pages`}>
         {section.items.map((it) => {
           const active = it === page;
           const Icon = it.icon;
@@ -84,7 +85,7 @@ function SectionTabs({ role, section }: { role: RoleName; section: NavSection })
               href={it.href}
               aria-current={active ? 'page' : undefined}
               className={cn(
-                'inline-flex shrink-0 items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors',
+                'inline-flex shrink-0 items-center gap-2 rounded-lg text-sm font-medium transition-colors', inline ? 'px-3 py-1.5' : 'px-3.5 py-2',
                 active ? 'bg-primary text-primary-foreground shadow-glow' : 'text-muted-foreground hover:bg-white/[0.05] hover:text-foreground',
               )}
             >
@@ -142,7 +143,7 @@ function PagedMain({ resetKey, children }: { resetKey: string; children: React.R
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
       <main ref={ref} className="no-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain" tabIndex={-1}>
-        <div className={cn('mx-auto w-full max-w-[1280px] px-4 py-5 sm:px-8 sm:py-6', pages > 1 && 'pb-24')}>
+        <div className={cn('mx-auto w-full max-w-[1280px] px-4 py-4 sm:px-8 sm:py-5', pages > 1 && 'pb-24')}>
           {/* opacity only: a transform here would become the containing block for position:fixed modals inside pages */}
           <motion.div key={resetKey} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2, ease: 'easeOut' }}>
             {children}
@@ -236,7 +237,8 @@ export function AppShell({ role, children }: { role: RoleName; children: React.R
   const RoleIcon = ROLE_ICON[role];
   const section = findSection(role, pathname);
   const page = findNav(role, pathname);
-  const title = section && section.items.length > 1 ? section.label : (page?.label ?? 'Dashboard');
+  const tabbed = !!section && section.items.length > 1;
+  const title = tabbed ? section!.label : (page?.label ?? 'Dashboard');
 
   // Role accent for everything on the page, including portals (modals) rendered outside this tree.
   useIsoLayoutEffect(() => {
@@ -293,17 +295,18 @@ export function AppShell({ role, children }: { role: RoleName; children: React.R
       </AnimatePresence>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-16 shrink-0 items-center gap-3 border-b border-white/[0.06] bg-background/75 px-4 backdrop-blur-xl sm:px-8">
+        <header className="relative z-30 flex h-16 shrink-0 items-center gap-3 border-b border-white/[0.06] bg-background/75 px-4 backdrop-blur-xl sm:px-8">
           <button onClick={() => setOpen(true)} className="grid size-10 place-items-center rounded-md text-muted-foreground hover:bg-white/[0.06] lg:hidden" aria-label="Open menu"><Menu className="size-5" /></button>
-          <div className="min-w-0 flex-1">
+          <div className={cn('min-w-0', tabbed ? 'flex-1 lg:flex-none' : 'flex-1')}>
             <h1 className="truncate font-display text-lg font-semibold tracking-tight">{title}</h1>
           </div>
+          {tabbed && <><span className="hidden h-6 w-px bg-white/[0.08] lg:block" aria-hidden /><SectionTabs role={role} section={section!} inline /></>}
           <div className="flex items-center gap-2 sm:gap-3">
             <NotificationBell href={`${ROLE_HOME[role]}/notifications`} />
             {loading ? <Skeleton className="h-9 w-32 rounded-full" /> : <ProfileMenu role={role} />}
           </div>
         </header>
-        {section && section.items.length > 1 && <SectionTabs role={role} section={section} />}
+        {tabbed && <SectionTabs role={role} section={section!} />}
         <PagedMain resetKey={pathname}>{children}</PagedMain>
       </div>
     </div>

@@ -16,7 +16,7 @@ const tone = (a: string): 'good' | 'attention' | 'monitor' | 'muted' =>
 export default function AuditLogsPage() {
   const [page, setPage] = useState(1);
   const [action, setAction] = useState('ALL');
-  const { data, error, loading, reload } = useApi<Paginated<AuditLogItem>>(`/admin/audit-logs?page=${page}&pageSize=20${action === 'ALL' ? '' : `&action=${action}`}`);
+  const { data, error, loading, reload } = useApi<Paginated<AuditLogItem>>(`/admin/audit-logs?page=${page}&pageSize=8${action === 'ALL' ? '' : `&action=${action}`}`);
   if (error) return <ErrorState message={error.message} onRetry={reload} />;
   const pages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1;
 
@@ -41,16 +41,16 @@ export default function AuditLogsPage() {
               <tbody className="divide-y divide-white/[0.05]">
                 {data.items.map((l) => (
                   <tr key={l.id}>
-                    <td className="whitespace-nowrap py-3 text-muted-foreground" title={new Date(l.at).toLocaleString()}>{timeAgo(l.at)}</td>
-                    <td className="py-3"><Badge variant={tone(l.action)}>{l.action.replaceAll('_', ' ').toLowerCase()}</Badge></td>
-                    <td className="py-3">{l.actorName ?? <span className="text-muted-foreground">anonymous</span>}{l.actorEmail && <span className="block text-xs text-muted-foreground">{l.actorEmail}</span>}</td>
-                    <td className="py-3 font-mono text-xs text-muted-foreground">{l.ip ?? '—'}</td>
+                    <td className="whitespace-nowrap py-2 text-muted-foreground" title={new Date(l.at).toLocaleString()}>{timeAgo(l.at)}</td>
+                    <td className="py-2"><Badge variant={tone(l.action)}>{l.action.replaceAll('_', ' ').toLowerCase()}</Badge></td>
+                    <td className="py-2">{l.actorName ?? <span className="text-muted-foreground">anonymous</span>}{l.actorEmail && <span className="block text-xs text-muted-foreground">{l.actorEmail}</span>}</td>
+                    <td className="py-2 font-mono text-xs text-muted-foreground">{l.ip ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <div className="mt-4 flex items-center justify-between text-sm text-muted-foreground">
+          <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
             <span>{data.total.toLocaleString()} events · page {page} of {pages}</span>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}><ChevronLeft /> Previous</Button>

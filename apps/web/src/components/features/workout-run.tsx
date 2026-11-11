@@ -123,7 +123,7 @@ function SessionRunner({ initial, onExit }: { initial: SessionDto; onExit: () =>
 
   const sections = (['WARMUP', 'MAIN', 'CARDIO', 'COOLDOWN'] as WorkoutSection[]).map((s) => [s, session.exercises.filter((e) => e.section === s)] as const).filter(([, e]) => e.length > 0);
   return (
-    <div className="space-y-6 pb-32">
+    <div className="space-y-4 pb-32">
       <div className="surface-card sticky top-[4.5rem] z-10 p-4">
         <div className="flex items-center justify-between gap-3"><div><p className="font-display text-lg font-bold">{session.workoutName}</p><p className="text-sm text-muted-foreground">{completedSets}/{totalSets} sets · {volume.toLocaleString()} kg volume</p></div><div className="flex gap-2"><Button variant="ghost" size="sm" onClick={onExit}><X /> Leave</Button><Button size="sm" onClick={() => setFinishing(true)}><Check /> Finish</Button></div></div>
         <Progress className="mt-3" value={completedSets} max={totalSets} label="Workout progress" />

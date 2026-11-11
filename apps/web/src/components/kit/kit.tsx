@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useCallback, useEffect, useId, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Search, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Search, X, type LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import type { ClientListItem, Paginated } from '@gym/types';
 import { api, ApiError } from '@/lib/api';
@@ -47,7 +47,7 @@ export const del = <T,>(path: string) => api<T>(path, { method: 'DELETE' });
 // ───────────────────────── layout
 export function PageHeader({ title, description, actions }: { title?: string; description?: string; actions?: React.ReactNode }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+    <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
       <div>
         {title && <h2 className="font-display text-2xl font-bold tracking-tight">{title}</h2>}
         {description && <p className="mt-1 max-w-2xl text-sm text-muted-foreground">{description}</p>}
@@ -84,7 +84,7 @@ export function Modal({ open, onClose, title, description, children, wide }: { o
 const fieldCls = 'flex w-full rounded-md border border-input bg-white/[0.03] px-3.5 text-sm text-foreground transition-colors focus-visible:border-primary/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 disabled:opacity-50 aria-[invalid=true]:border-destructive/70';
 
 export const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HTMLSelectElement>>(({ className, children, ...p }, ref) => (
-  <select ref={ref} className={cn(fieldCls, 'h-11 [&>option]:bg-elevated', className)} {...p}>{children}</select>
+  <select ref={ref} className={cn(fieldCls, 'h-10 [&>option]:bg-elevated', className)} {...p}>{children}</select>
 ));
 Select.displayName = 'Select';
 
@@ -117,6 +117,46 @@ export function Tabs<T extends string>({ tabs, value, onChange }: { tabs: Array<
 
 export function Chip({ active, onClick, children }: { active?: boolean; onClick?: () => void; children: React.ReactNode }) {
   return <button type="button" onClick={onClick} className={cn('rounded-full border px-3 py-1 text-xs font-semibold transition-colors', active ? 'border-primary/50 bg-primary/10 text-primary' : 'border-white/10 text-muted-foreground hover:text-foreground')}>{children}</button>;
+}
+
+/**
+ * In-page view switcher (segmented control). Long pages are split into views that each fit one screen,
+ * instead of stacking everything into a page that needs scrolling.
+ */
+export function ViewTabs<T extends string>({ value, onChange, options, className }: { value: T; onChange: (v: T) => void; options: Array<{ value: T; label: string; icon?: LucideIcon }>; className?: string }) {
+  return (
+    <div role="tablist" className={cn('inline-flex gap-1 rounded-xl border border-white/[0.06] bg-white/[0.02] p-1', className)}>
+      {options.map(({ value: v, label, icon: Icon }) => (
+        <button key={v} type="button" role="tab" aria-selected={v === value} onClick={() => onChange(v)}
+          className={cn('inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors', v === value ? 'bg-white/[0.09] text-foreground ring-1 ring-primary/30' : 'text-muted-foreground hover:bg-white/[0.05] hover:text-foreground')}>
+          {Icon && <Icon className={cn('size-4', v === value && 'text-primary')} />} {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Client-side pages for a list, so a table shows a fixed number of rows instead of growing the page. */
+export function usePaged<T>(items: T[], size: number) {
+  const [page, setPage] = useState(0);
+  const pages = Math.max(1, Math.ceil(items.length / size));
+  const p = Math.min(page, pages - 1);
+  return { slice: items.slice(p * size, (p + 1) * size), page: p, pages, setPage, total: items.length };
+}
+
+/** Prev / "Page x of n" / Next under a list. Renders nothing when everything fits on one page. */
+export function MiniPager({ page, pages, onPage, total, className }: { page: number; pages: number; onPage: (p: number) => void; total?: number; className?: string }) {
+  if (pages <= 1) return null;
+  return (
+    <div className={cn('mt-3 flex items-center justify-between gap-2 border-t border-white/[0.05] pt-3 text-xs text-muted-foreground', className)}>
+      <span>{total != null ? `${total} total` : ''}</span>
+      <div className="flex items-center gap-2">
+        <Button size="sm" variant="ghost" disabled={page === 0} onClick={() => onPage(page - 1)}><ChevronLeft /> Prev</Button>
+        <span className="tabular-nums">Page {page + 1} of {pages}</span>
+        <Button size="sm" variant="outline" disabled={page >= pages - 1} onClick={() => onPage(page + 1)}>Next <ChevronRight /></Button>
+      </div>
+    </div>
+  );
 }
 
 export function SearchBox({ value, onChange, placeholder = 'Search…', className }: { value: string; onChange: (v: string) => void; placeholder?: string; className?: string }) {

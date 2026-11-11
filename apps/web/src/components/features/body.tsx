@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Activity, Calculator, Check, Gauge, Info, Save, Sparkles } from 'lucide-react';
+import { Activity, Calculator, Check, Gauge, Info, Save, Sparkles, Target } from 'lucide-react';
 import type { AssessmentDto, CalculationDto, Goal, RecommendationDto, TargetDto } from '@gym/types';
 import type { NutritionSettings } from '@gym/config';
 import { useApi } from '@/lib/use-api';
@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge, Skeleton } from '@/components/ui/misc';
 import { EmptyState, ErrorState, Section } from '@/components/dashboard/primitives';
-import { fieldErrors, FormRow, fmtDate, PageHeader, post, put, Select, titleCase, useAction, WithClient, withQs, num } from '@/components/kit/kit';
+import { fieldErrors, FormRow, fmtDate, PageHeader, post, put, Select, titleCase, useAction, WithClient, withQs, num, ViewTabs } from '@/components/kit/kit';
 import { TrendChart } from './progress';
 
 const GOALS: Goal[] = ['FAT_LOSS', 'RECOMPOSITION', 'MUSCLE_BUILDING'];
@@ -27,7 +27,7 @@ function Stat({ label, value, sub, estimate }: { label: string; value: string; s
 export function AssessmentCards({ a }: { a: AssessmentDto }) {
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Stat label="BMI" value={a.bmi.toFixed(1)} sub={a.bmiCategory || undefined} />
         <Stat label="Body fat" estimate value={a.bodyFatPct == null ? 'Needs waist & neck' : `${a.bodyFatPct}%`} sub={a.method === 'US_NAVY' ? 'US Navy tape method' : undefined} />
         <Stat label="Fat mass" estimate value={a.fatMassKg == null ? '—' : `${a.fatMassKg} kg`} />
@@ -84,6 +84,7 @@ function BodyAnalysisPanel({ qs, isClient }: { qs: string; isClient: boolean }) 
   const [result, setResult] = useState<AssessmentDto | null>(null);
   const [message, setMessage] = useState('');
   const latest = hist.data?.items[0] ?? null;
+  const [view, setView] = useState<'assess' | 'goal'>('assess');
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -97,11 +98,13 @@ function BodyAnalysisPanel({ qs, isClient }: { qs: string; isClient: boolean }) 
   const series = [...(hist.data?.items ?? [])].reverse().filter((a) => a.bodyFatPct != null).map((a) => ({ date: a.assessedAt, value: a.bodyFatPct! }));
   const p = profile.data?.profile;
 
+  // Two views that each fit one screen: run an assessment / see the trend, profile and goal.
   return (
-    <div className="space-y-6">
-      <div className="grid gap-6 lg:grid-cols-[380px_1fr]">
-        <div className="space-y-6">
-          <Section title="New assessment" description="Enter today’s measurements. Height, age and sex come from the profile.">
+    <div className="space-y-4">
+      <ViewTabs value={view} onChange={setView} options={[{ value: 'assess', label: 'Assessment', icon: Gauge }, { value: 'goal', label: 'Trend & goal', icon: Target }]} />
+      {view === 'assess' ? (
+        <div className="grid gap-4 lg:grid-cols-[340px_1fr]">
+          <Section title="New assessment" description="Height, age and sex come from the profile.">
             <form onSubmit={submit} className="grid grid-cols-2 gap-3">
               <FormRow label="Weight (kg)" error={errs.weightKg} className="col-span-2">{(id) => <Input id={id} type="number" step="0.1" required inputMode="decimal" value={f.weightKg} onChange={(e) => setF({ ...f, weightKg: e.target.value })} placeholder={latest ? String(latest.weightKg) : ''} />}</FormRow>
               <FormRow label="Waist (cm)" error={errs.waistCm}>{(id) => <Input id={id} type="number" step="0.1" inputMode="decimal" value={f.waistCm} onChange={(e) => setF({ ...f, waistCm: e.target.value })} />}</FormRow>
@@ -111,16 +114,19 @@ function BodyAnalysisPanel({ qs, isClient }: { qs: string; isClient: boolean }) 
               <Button type="submit" loading={busy} className="col-span-2"><Gauge /> Run assessment</Button>
             </form>
           </Section>
-          <ProfileCard qs={qs} profile={p ?? null} canEdit={!isClient} reload={profile.reload} loading={profile.loading} />
-        </div>
-        <div className="space-y-6">
           <Section title={result ? 'Result' : 'Latest assessment'} description={(result ?? latest) ? fmtDate((result ?? latest)!.assessedAt) : undefined}>
             {(result ?? latest) ? <AssessmentCards a={(result ?? latest)!} /> : <EmptyState icon={Activity} title="No assessments yet" description="Run your first assessment to see BMI, estimated body fat, lean mass and calorie needs." />}
           </Section>
-          <Section title="Estimated body fat over time">{series.length < 2 ? <EmptyState icon={Activity} title="Not enough data" description="Two assessments with waist and neck measurements draw the trend." /> : <TrendChart data={series} unit="%" color="hsl(var(--chart-3))" />}</Section>
         </div>
-      </div>
-      <RecommendationCard qs={qs} isClient={isClient} />
+      ) : (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="space-y-4">
+            <ProfileCard qs={qs} profile={p ?? null} canEdit={!isClient} reload={profile.reload} loading={profile.loading} />
+            <Section title="Estimated body fat over time">{series.length < 2 ? <EmptyState icon={Activity} title="Not enough data" description="Two assessments with waist and neck measurements draw the trend." /> : <TrendChart data={series} unit="%" color="hsl(var(--chart-3))" height={150} />}</Section>
+          </div>
+          <RecommendationCard qs={qs} isClient={isClient} />
+        </div>
+      )}
     </div>
   );
 }
@@ -185,8 +191,8 @@ function TargetsPanel({ qs, isClient }: { qs: string; isClient: boolean }) {
   const s = settings.data;
   const active = targets.data?.active;
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
-      <div className="space-y-6">
+    <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
+      <div className="space-y-4">
         <Section title={isClient ? 'Estimate my needs' : 'Calculate targets'} description="Calories and macros from the body profile, latest assessment and goal.">
           <div className="grid gap-4 sm:grid-cols-2">
             <FormRow label="Goal" hint="Leave on profile goal unless you want to compare">{(id) => <Select id={id} value={goal} onChange={(e) => setGoal(e.target.value as Goal | '')}><option value="">Use profile goal</option>{GOALS.map((g) => <option key={g} value={g}>{titleCase(g)}</option>)}</Select>}</FormRow>
@@ -219,7 +225,7 @@ function TargetsPanel({ qs, isClient }: { qs: string; isClient: boolean }) {
           </Section>
         )}
       </div>
-      <div className="space-y-6">
+      <div className="space-y-4">
         <Section title={isClient ? 'My daily target' : 'Current target'}>
           {targets.loading ? <Skeleton className="h-32" /> : !active ? <EmptyState icon={Calculator} title="No target set" description={isClient ? 'Your trainer will set this for you.' : 'Calculate and save one on the left.'} /> : (
             <div><p className="font-display text-4xl font-bold tabular-nums">{active.calories}<span className="ml-1 text-base font-medium text-muted-foreground">kcal</span></p>
@@ -256,35 +262,35 @@ export function NutritionSettingsPage() {
   const range = (key: 'calorieAdjustRange' | 'proteinPerKgRange' | 'fatPctRange', i: 0 | 1, v: number, scale = 1) => setS({ ...s, [key]: i === 0 ? [v / scale, s[key][1]] : [s[key][0], v / scale] } as NutritionSettings);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader description="These ranges drive the nutrition calculator for every trainer. Trainers can tune a client’s numbers only inside the allowed ranges." actions={<Button loading={busy} onClick={() => void save()}><Save /> Save settings</Button>} />
       {Object.keys(errs).length > 0 && <p role="alert" className="rounded-md border border-destructive/30 bg-destructive/[0.06] p-3 text-sm text-destructive">Some values are outside the permitted limits: {Object.keys(errs).join(', ')}</p>}
-      <Section title="Goal defaults" description="What each goal starts from.">
+      <Section title="Goal defaults">
         <div className="overflow-x-auto"><table className="w-full min-w-[560px] text-sm"><thead><tr className="text-left text-xs uppercase tracking-wider text-muted-foreground"><th className="pb-2 font-medium">Goal</th><th className="pb-2 font-medium">Calories vs maintenance (%)</th><th className="pb-2 font-medium">Protein (g/kg)</th><th className="pb-2 font-medium">Fat (% kcal)</th></tr></thead>
           <tbody className="divide-y divide-white/[0.05]">{GOALS.map((g) => (
-            <tr key={g}><td className="py-3 font-medium">{titleCase(g)}</td>
-              <td className="py-3 pr-3"><Input type="number" step="1" aria-label={`${g} calories`} className="h-9 w-28" value={Math.round(s.calorieAdjustPct[g] * 100)} onChange={(e) => setGoalVal('calorieAdjustPct', g, Number(e.target.value), 100)} /></td>
-              <td className="py-3 pr-3"><Input type="number" step="0.1" aria-label={`${g} protein`} className="h-9 w-28" value={s.proteinPerKg[g]} onChange={(e) => setGoalVal('proteinPerKg', g, Number(e.target.value))} /></td>
-              <td className="py-3"><Input type="number" step="1" aria-label={`${g} fat`} className="h-9 w-28" value={Math.round(s.fatPct[g] * 100)} onChange={(e) => setGoalVal('fatPct', g, Number(e.target.value), 100)} /></td></tr>
+            <tr key={g}><td className="py-1.5 font-medium">{titleCase(g)}</td>
+              <td className="py-1.5 pr-3"><Input type="number" step="1" aria-label={`${g} calories`} className="h-8 w-28" value={Math.round(s.calorieAdjustPct[g] * 100)} onChange={(e) => setGoalVal('calorieAdjustPct', g, Number(e.target.value), 100)} /></td>
+              <td className="py-1.5 pr-3"><Input type="number" step="0.1" aria-label={`${g} protein`} className="h-8 w-28" value={s.proteinPerKg[g]} onChange={(e) => setGoalVal('proteinPerKg', g, Number(e.target.value))} /></td>
+              <td className="py-1.5"><Input type="number" step="1" aria-label={`${g} fat`} className="h-8 w-28" value={Math.round(s.fatPct[g] * 100)} onChange={(e) => setGoalVal('fatPct', g, Number(e.target.value), 100)} /></td></tr>
           ))}</tbody></table></div>
       </Section>
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2">
         <Section title="Trainer-adjustable ranges" description="Hard limits when a trainer overrides a calculation.">
-          <div className="grid grid-cols-2 gap-4">
-            <FormRow label="Calorie adj. min (%)">{(id) => <Input id={id} type="number" value={Math.round(s.calorieAdjustRange[0] * 100)} onChange={(e) => range('calorieAdjustRange', 0, Number(e.target.value), 100)} />}</FormRow>
-            <FormRow label="Calorie adj. max (%)">{(id) => <Input id={id} type="number" value={Math.round(s.calorieAdjustRange[1] * 100)} onChange={(e) => range('calorieAdjustRange', 1, Number(e.target.value), 100)} />}</FormRow>
-            <FormRow label="Protein min (g/kg)">{(id) => <Input id={id} type="number" step="0.1" value={s.proteinPerKgRange[0]} onChange={(e) => range('proteinPerKgRange', 0, Number(e.target.value))} />}</FormRow>
-            <FormRow label="Protein max (g/kg)">{(id) => <Input id={id} type="number" step="0.1" value={s.proteinPerKgRange[1]} onChange={(e) => range('proteinPerKgRange', 1, Number(e.target.value))} />}</FormRow>
-            <FormRow label="Fat min (% kcal)">{(id) => <Input id={id} type="number" value={Math.round(s.fatPctRange[0] * 100)} onChange={(e) => range('fatPctRange', 0, Number(e.target.value), 100)} />}</FormRow>
-            <FormRow label="Fat max (% kcal)">{(id) => <Input id={id} type="number" value={Math.round(s.fatPctRange[1] * 100)} onChange={(e) => range('fatPctRange', 1, Number(e.target.value), 100)} />}</FormRow>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <FormRow label="Calorie adj. min (%)">{(id) => <Input id={id} className="h-9" type="number" value={Math.round(s.calorieAdjustRange[0] * 100)} onChange={(e) => range('calorieAdjustRange', 0, Number(e.target.value), 100)} />}</FormRow>
+            <FormRow label="Calorie adj. max (%)">{(id) => <Input id={id} className="h-9" type="number" value={Math.round(s.calorieAdjustRange[1] * 100)} onChange={(e) => range('calorieAdjustRange', 1, Number(e.target.value), 100)} />}</FormRow>
+            <FormRow label="Protein min (g/kg)">{(id) => <Input id={id} className="h-9" type="number" step="0.1" value={s.proteinPerKgRange[0]} onChange={(e) => range('proteinPerKgRange', 0, Number(e.target.value))} />}</FormRow>
+            <FormRow label="Protein max (g/kg)">{(id) => <Input id={id} className="h-9" type="number" step="0.1" value={s.proteinPerKgRange[1]} onChange={(e) => range('proteinPerKgRange', 1, Number(e.target.value))} />}</FormRow>
+            <FormRow label="Fat min (% kcal)">{(id) => <Input id={id} className="h-9" type="number" value={Math.round(s.fatPctRange[0] * 100)} onChange={(e) => range('fatPctRange', 0, Number(e.target.value), 100)} />}</FormRow>
+            <FormRow label="Fat max (% kcal)">{(id) => <Input id={id} className="h-9" type="number" value={Math.round(s.fatPctRange[1] * 100)} onChange={(e) => range('fatPctRange', 1, Number(e.target.value), 100)} />}</FormRow>
           </div>
         </Section>
         <Section title="Fibre, water & activity">
-          <div className="grid grid-cols-2 gap-4">
-            <FormRow label="Fibre (g per 1000 kcal)">{(id) => <Input id={id} type="number" step="0.5" value={s.fiberPer1000Kcal} onChange={(e) => setS({ ...s, fiberPer1000Kcal: Number(e.target.value) })} />}</FormRow>
-            <FormRow label="Water (ml per kg)">{(id) => <Input id={id} type="number" value={s.waterMlPerKg} onChange={(e) => setS({ ...s, waterMlPerKg: Number(e.target.value) })} />}</FormRow>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <FormRow label="Fibre (g per 1000 kcal)">{(id) => <Input id={id} className="h-9" type="number" step="0.5" value={s.fiberPer1000Kcal} onChange={(e) => setS({ ...s, fiberPer1000Kcal: Number(e.target.value) })} />}</FormRow>
+            <FormRow label="Water (ml per kg)">{(id) => <Input id={id} className="h-9" type="number" value={s.waterMlPerKg} onChange={(e) => setS({ ...s, waterMlPerKg: Number(e.target.value) })} />}</FormRow>
             {(Object.keys(s.activityMultiplier) as Array<keyof NutritionSettings['activityMultiplier']>).map((a) => (
-              <FormRow key={a} label={`${titleCase(a)} multiplier`}>{(id) => <Input id={id} type="number" step="0.025" value={s.activityMultiplier[a]} onChange={(e) => setS({ ...s, activityMultiplier: { ...s.activityMultiplier, [a]: Number(e.target.value) } })} />}</FormRow>
+              <FormRow key={a} label={`${titleCase(a)} multiplier`}>{(id) => <Input id={id} className="h-9" type="number" step="0.025" value={s.activityMultiplier[a]} onChange={(e) => setS({ ...s, activityMultiplier: { ...s.activityMultiplier, [a]: Number(e.target.value) } })} />}</FormRow>
             ))}
           </div>
         </Section>

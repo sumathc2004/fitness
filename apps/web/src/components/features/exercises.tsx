@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge, Skeleton } from '@/components/ui/misc';
 import { EmptyState, ErrorState } from '@/components/dashboard/primitives';
-import { Chip, fieldErrors, FormRow, Modal, PageHeader, post, put, SearchBox, Select, Textarea, titleCase, useAction } from '@/components/kit/kit';
+import { Chip, fieldErrors, FormRow, Modal, PageHeader, post, put, SearchBox, Select, Textarea, titleCase, useAction, usePaged, MiniPager } from '@/components/kit/kit';
 
 const CATS = ['STRENGTH', 'CARDIO', 'MOBILITY', 'STRETCH', 'PLYOMETRIC', 'CORE'];
 const lines = (s: string) => s.split('\n').map((x) => x.trim()).filter(Boolean);
@@ -69,6 +69,7 @@ export function ExercisesPage() {
   const [open, setOpen] = useState<string | null>(null);
   const [edit, setEdit] = useState<ExerciseDto | 'new' | null>(null);
   const { run } = useAction();
+  const paged = usePaged(data?.items ?? [], 8);
   if (error) return <ErrorState message={error.message} onRetry={reload} />;
   const current = data?.items.find((e) => e.id === open) ?? null;
   const items = data?.items ?? [];
@@ -78,7 +79,7 @@ export function ExercisesPage() {
       <div className="mb-5 flex flex-wrap gap-2"><Chip active={!cat} onClick={() => setCat('')}>All</Chip>{CATS.map((c) => <Chip key={c} active={cat === c} onClick={() => setCat(c)}>{titleCase(c)}</Chip>)}{staff && <><span className="mx-1 w-px bg-white/10" /><Chip active={showArchived} onClick={() => setShowArchived((v) => !v)}>Show archived</Chip></>}</div>
       {loading || !data ? <Skeleton className="h-64" /> : items.length === 0 ? <EmptyState icon={Dumbbell} title="No exercises found" description="Try a different search or filter." /> : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {items.map((e) => (
+          {paged.slice.map((e) => (
             <button key={e.id} onClick={() => setOpen(e.id)} className={cn('surface-card group flex flex-col gap-3 p-4 text-left transition-colors hover:border-primary/40', !e.isActive && 'opacity-60')}>
               <div className="flex items-start justify-between gap-2"><span className="grid size-10 place-items-center rounded-lg bg-primary/10 text-primary"><Dumbbell className="size-5" /></span>{!e.isActive && <Badge variant="muted">archived</Badge>}</div>
               <div><p className="font-display font-semibold group-hover:text-primary">{e.name}</p><p className="mt-0.5 text-xs text-muted-foreground">{e.primaryMuscles.join(', ')}</p></div>
@@ -87,6 +88,7 @@ export function ExercisesPage() {
           ))}
         </div>
       )}
+      <MiniPager page={paged.page} pages={paged.pages} onPage={paged.setPage} total={paged.total} />
       <Modal open={!!current} onClose={() => setOpen(null)} title={current?.name ?? ''} wide>
         {current && <Detail exercise={current} canEdit={staff && (isAdmin || current.createdById === user?.id)} onEdit={() => { setEdit(current); setOpen(null); }} />}
         {current && staff && (isAdmin || current.createdById === user?.id) && <div className="mt-4 flex justify-end"><Button size="sm" variant="ghost" onClick={async () => { if (await run(() => post(`/exercises/${current.id}/${current.isActive ? 'archive' : 'restore'}`), current.isActive ? 'Exercise archived' : 'Exercise restored')) { setOpen(null); reload(); } }}>{current.isActive ? 'Archive exercise' : 'Restore exercise'}</Button></div>}

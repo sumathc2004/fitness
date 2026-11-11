@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { BarChart3, CreditCard, Download, FileText, IndianRupee, Layers, Plus, Ticket, Users } from 'lucide-react';
+import { BarChart3, CreditCard, Download, FileText, IndianRupee, Layers, PieChart as PieIcon, Plus, Ticket, TrendingUp, Users } from 'lucide-react';
 import type { Paginated } from '@gym/types';
 import { useApi } from '@/lib/use-api';
 import { useAuth } from '@/lib/auth-context';
@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge, Skeleton } from '@/components/ui/misc';
 import { EmptyState, ErrorState, Section, StatCard } from '@/components/dashboard/primitives';
-import { Chip, ConfirmButton, FormRow, fmtDate, Modal, PageHeader, post, put, Select, Textarea, titleCase, useAction, today, num, ClientPicker } from '@/components/kit/kit';
+import { Chip, ConfirmButton, FormRow, fmtDate, Modal, PageHeader, post, put, Select, Textarea, titleCase, useAction, today, num, ClientPicker, ViewTabs } from '@/components/kit/kit';
 
 const axis = { stroke: 'hsl(215 10% 40%)', fontSize: 12, tickLine: false, axisLine: false } as const;
 const tip = { contentStyle: { background: 'hsl(var(--elevated))', border: '1px solid hsl(0 0% 100% / 0.1)', borderRadius: 8, fontSize: 12 } };
@@ -86,7 +86,7 @@ export function SubscriptionsPage() {
       <PageHeader description="Who is subscribed to what, and when it ends." actions={<Button onClick={() => setOpen(true)}><Plus /> Enrol client</Button>} />
       <div className="mb-4 flex gap-2">{(['ACTIVE', 'EXPIRING', 'EXPIRED', 'CANCELLED'] as const).map((f) => <Chip key={f} active={filter === f} onClick={() => setFilter(f)}>{f === 'EXPIRING' ? 'Expiring in 14 days' : titleCase(f)}</Chip>)}</div>
       {loading || !data ? <Skeleton className="h-56" /> : data.items.length === 0 ? <EmptyState icon={Layers} title="Nothing here" description="No subscriptions match this filter." /> : (
-        <div className="surface-card overflow-x-auto"><table className="w-full min-w-[640px] text-sm"><thead><tr className="text-left text-xs uppercase tracking-wider text-muted-foreground"><th className="p-4 font-medium">Client</th><th className="p-4 font-medium">Plan</th><th className="p-4 font-medium">Period</th><th className="p-4 font-medium">Remaining</th><th /></tr></thead>
+        <div className="surface-card overflow-x-auto"><table className="w-full min-w-[640px] text-sm"><thead><tr className="text-left text-xs uppercase tracking-wider text-muted-foreground"><th className="px-4 py-3 font-medium">Client</th><th className="px-4 py-3 font-medium">Plan</th><th className="px-4 py-3 font-medium">Period</th><th className="px-4 py-3 font-medium">Remaining</th><th /></tr></thead>
           <tbody className="divide-y divide-white/[0.05]">{data.items.map((s) => (
             <tr key={s.id}><td className="p-4 font-medium">{s.clientName}</td><td className="p-4">{s.membership.name}</td><td className="p-4 text-muted-foreground">{fmtDate(s.startDate)} → {fmtDate(s.endDate)}</td>
               <td className="p-4">{s.status === 'ACTIVE' ? <Badge variant={s.daysLeft <= 7 ? 'attention' : s.daysLeft <= 14 ? 'monitor' : 'good'}>{s.daysLeft} days</Badge> : <Badge variant="muted">{s.status.toLowerCase()}</Badge>}</td>
@@ -131,33 +131,40 @@ export function PaymentsPage() {
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
   const sum = useApi<PaySummary>('/payments/summary');
-  const { data, error, loading, reload } = useApi<Paginated<Pay>>(`/payments?page=${page}&pageSize=15${status ? `&status=${status}` : ''}`);
+  const { data, error, loading, reload } = useApi<Paginated<Pay>>(`/payments?page=${page}&pageSize=6${status ? `&status=${status}` : ''}`);
   const [open, setOpen] = useState(false);
   const { run } = useAction();
   if (error) return <ErrorState message={error.message} onRetry={reload} />;
   const pages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1;
   const s = sum.data;
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader description="Record and track payments. Online gateways can be plugged in later without changing this ledger." actions={<Button onClick={() => setOpen(true)}><Plus /> Record payment</Button>} />
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Revenue this month" value={s ? inr(s.revenueThisMonth) : '…'} hint={s ? `Last month ${inr(s.revenueLastMonth)}` : undefined} icon={IndianRupee} tone="primary" />
-        <StatCard label="Pending" value={s ? inr(s.pendingAmount) : '…'} hint={s ? `${s.pendingCount} payment${s.pendingCount === 1 ? '' : 's'}` : undefined} icon={CreditCard} tone={s && s.pendingCount > 0 ? 'attention' : 'default'} />
-        <StatCard label="Active memberships" value={s?.activeMemberships ?? 0} icon={Users} />
-        <StatCard label="Expiring in 14 days" value={s?.expiringIn14Days ?? 0} icon={Layers} />
+      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        {([
+          [IndianRupee, 'Revenue this month', s ? inr(s.revenueThisMonth) : '…', s ? `Last month ${inr(s.revenueLastMonth)}` : '', 'text-primary'],
+          [CreditCard, 'Pending', s ? inr(s.pendingAmount) : '…', s ? `${s.pendingCount} payment${s.pendingCount === 1 ? '' : 's'}` : '', s && s.pendingCount > 0 ? 'text-attention' : ''],
+          [Users, 'Active memberships', String(s?.activeMemberships ?? 0), '', ''],
+          [Layers, 'Expiring in 14 days', String(s?.expiringIn14Days ?? 0), '', ''],
+        ] as const).map(([Icon, l, v, h, c]) => (
+          <div key={l} className="surface-card flex items-center gap-3 px-4 py-3">
+            <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary"><Icon className="size-4" /></span>
+            <div className="min-w-0"><p className="truncate text-xs text-muted-foreground">{l}</p><p className={`font-display text-lg font-bold tabular-nums ${c}`}>{v}</p>{h && <p className="truncate text-[11px] text-muted-foreground">{h}</p>}</div>
+          </div>
+        ))}
       </div>
       <div className="flex gap-2">{['', 'PAID', 'PENDING', 'FAILED', 'REFUNDED'].map((x) => <Chip key={x} active={status === x} onClick={() => { setStatus(x); setPage(1); }}>{x ? titleCase(x) : 'All'}</Chip>)}</div>
       {loading || !data ? <Skeleton className="h-64" /> : data.items.length === 0 ? <EmptyState icon={CreditCard} title="No payments" /> : (
-        <div className="surface-card overflow-x-auto"><table className="w-full min-w-[760px] text-sm"><thead><tr className="text-left text-xs uppercase tracking-wider text-muted-foreground"><th className="p-4 font-medium">Invoice</th><th className="p-4 font-medium">Client</th><th className="p-4 font-medium">Amount</th><th className="p-4 font-medium">Method</th><th className="p-4 font-medium">Status</th><th className="p-4 font-medium">Date</th><th /></tr></thead>
+        <div className="surface-card overflow-x-auto"><table className="w-full min-w-[760px] text-sm"><thead><tr className="text-left text-xs uppercase tracking-wider text-muted-foreground"><th className="px-4 py-3 font-medium">Invoice</th><th className="px-4 py-3 font-medium">Client</th><th className="px-4 py-3 font-medium">Amount</th><th className="px-4 py-3 font-medium">Method</th><th className="px-4 py-3 font-medium">Status</th><th className="px-4 py-3 font-medium">Date</th><th /></tr></thead>
           <tbody className="divide-y divide-white/[0.05]">{data.items.map((p) => (
-            <tr key={p.id}><td className="p-4 font-mono text-xs">{p.invoiceNo ?? '—'}</td><td className="p-4 font-medium">{p.clientName}</td><td className="p-4 tabular-nums">{inr(p.amount)}</td><td className="p-4 text-muted-foreground">{titleCase(p.method)}</td>
-              <td className="p-4"><Badge variant={payTone(p.status)}>{p.status.toLowerCase()}</Badge></td><td className="p-4 text-muted-foreground">{fmtDate(p.paidAt ?? p.createdAt)}</td>
-              <td className="p-4 text-right"><div className="flex justify-end gap-1.5">
+            <tr key={p.id}><td className="px-4 py-2 font-mono text-xs">{p.invoiceNo ?? '—'}</td><td className="px-4 py-2 font-medium">{p.clientName}</td><td className="px-4 py-2 tabular-nums">{inr(p.amount)}</td><td className="px-4 py-2 text-muted-foreground">{titleCase(p.method)}</td>
+              <td className="px-4 py-2"><Badge variant={payTone(p.status)}>{p.status.toLowerCase()}</Badge></td><td className="px-4 py-2 text-muted-foreground">{fmtDate(p.paidAt ?? p.createdAt)}</td>
+              <td className="px-4 py-2 text-right"><div className="flex justify-end gap-1.5">
                 {p.status === 'PENDING' && <Button size="sm" variant="outline" onClick={async () => { if (await run(() => post(`/payments/${p.id}/status`, { status: 'PAID' }), 'Marked paid')) { reload(); sum.reload(); } }}>Mark paid</Button>}
                 {p.status === 'PAID' && <ConfirmButton variant="ghost" label="Refund?" onConfirm={async () => { if (await run(() => post(`/payments/${p.id}/status`, { status: 'REFUNDED' }), 'Marked refunded')) { reload(); sum.reload(); } }}>Refund</ConfirmButton>}
               </div></td></tr>
           ))}</tbody></table>
-          <div className="flex items-center justify-between border-t border-white/[0.05] p-4 text-sm text-muted-foreground"><span>{data.total} payments · page {page} of {pages}</span><div className="flex gap-2"><Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((x) => x - 1)}>Previous</Button><Button size="sm" variant="outline" disabled={page >= pages} onClick={() => setPage((x) => x + 1)}>Next</Button></div></div>
+          <div className="flex items-center justify-between border-t border-white/[0.05] px-4 py-3 text-sm text-muted-foreground"><span>{data.total} payments · page {page} of {pages}</span><div className="flex gap-2"><Button size="sm" variant="outline" disabled={page <= 1} onClick={() => setPage((x) => x - 1)}>Previous</Button><Button size="sm" variant="outline" disabled={page >= pages} onClick={() => setPage((x) => x + 1)}>Next</Button></div></div>
         </div>
       )}
       <Modal open={open} onClose={() => setOpen(false)} title="Record a payment"><PaymentForm onClose={() => setOpen(false)} onDone={() => { setOpen(false); reload(); sum.reload(); }} /></Modal>
@@ -194,31 +201,40 @@ function Donut({ data }: { data: Array<{ name: string; value: number }> }) {
   const rows = data.filter((d) => d.value > 0);
   if (rows.length === 0) return <EmptyState icon={BarChart3} title="No data yet" />;
   return (
-    <div className="flex items-center gap-4"><ResponsiveContainer width={150} height={150}><PieChart><Pie data={rows} dataKey="value" innerRadius={42} outerRadius={68} paddingAngle={2} stroke="none">{rows.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}</Pie><Tooltip {...tip} /></PieChart></ResponsiveContainer>
+    <div className="flex items-center gap-4"><ResponsiveContainer width={136} height={136}><PieChart><Pie data={rows} dataKey="value" innerRadius={38} outerRadius={62} paddingAngle={2} stroke="none">{rows.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}</Pie><Tooltip {...tip} /></PieChart></ResponsiveContainer>
       <ul className="space-y-1.5 text-sm">{rows.map((r, i) => <li key={r.name} className="flex items-center gap-2"><span className="size-2.5 rounded-full" style={{ background: COLORS[i % COLORS.length] }} />{titleCase(r.name)} <span className="text-muted-foreground">· {r.value}</span></li>)}</ul></div>
   );
 }
 
 export function AnalyticsPage() {
   const { data: a, error, loading, reload } = useApi<AdminAnalytics>('/analytics/admin');
+  const [view, setView] = useState<'growth' | 'mix' | 'trainers'>('growth');
   if (error) return <ErrorState message={error.message} onRetry={reload} />;
   if (loading || !a) return <Skeleton className="h-96" />;
   return (
-    <div className="space-y-6">
-      <PageHeader description="Revenue, growth, attendance and training compliance across the gym." />
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Section title="Revenue · last 6 months"><ResponsiveContainer width="100%" height={220}><BarChart data={a.revenueByMonth} margin={{ top: 8, right: 8, left: -10, bottom: 0 }}><CartesianGrid vertical={false} stroke="hsl(0 0% 100% / 0.05)" /><XAxis dataKey="month" {...axis} /><YAxis {...axis} tickFormatter={(v: number) => (v >= 1000 ? `${Math.round(v / 1000)}k` : String(v))} /><Tooltip {...tip} formatter={(v: number) => [inr(v), 'Revenue']} cursor={{ fill: 'hsl(0 0% 100% / 0.04)' }} /><Bar dataKey="revenue" fill="hsl(var(--chart-1))" radius={[6, 6, 2, 2]} maxBarSize={36} /></BarChart></ResponsiveContainer></Section>
-        <Section title="New clients per month"><ResponsiveContainer width="100%" height={220}><BarChart data={a.revenueByMonth} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}><CartesianGrid vertical={false} stroke="hsl(0 0% 100% / 0.05)" /><XAxis dataKey="month" {...axis} /><YAxis {...axis} allowDecimals={false} /><Tooltip {...tip} cursor={{ fill: 'hsl(0 0% 100% / 0.04)' }} /><Bar dataKey="newClients" fill="hsl(var(--chart-2))" radius={[6, 6, 2, 2]} maxBarSize={36} /></BarChart></ResponsiveContainer></Section>
-        <Section title="Check-ins per week"><ResponsiveContainer width="100%" height={220}><BarChart data={a.weeklyAttendance} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}><CartesianGrid vertical={false} stroke="hsl(0 0% 100% / 0.05)" /><XAxis dataKey="week" {...axis} /><YAxis {...axis} allowDecimals={false} /><Tooltip {...tip} cursor={{ fill: 'hsl(0 0% 100% / 0.04)' }} /><Bar dataKey="checkIns" fill="hsl(var(--chart-3))" radius={[6, 6, 2, 2]} maxBarSize={36} /></BarChart></ResponsiveContainer></Section>
-        <Section title="Workout compliance · 30 days" description={`${a.workoutCompliance30d.done} of ${a.workoutCompliance30d.planned} assigned workouts completed`}><p className="font-display text-5xl font-bold">{a.workoutCompliance30d.rate == null ? '—' : `${a.workoutCompliance30d.rate}%`}</p>{a.workoutCompliance30d.rate == null && <p className="mt-1 text-sm text-muted-foreground">No workouts were scheduled in this window.</p>}</Section>
-        <Section title="Client attention"><Donut data={[{ name: 'good', value: a.attention.good }, { name: 'monitor', value: a.attention.monitor }, { name: 'needs attention', value: a.attention.attention }]} /></Section>
-        <Section title="Goals"><Donut data={a.goalMix.map((g) => ({ name: g.goal, value: g.count }))} /></Section>
-        <Section title="Memberships"><Donut data={a.membershipMix.map((g) => ({ name: g.plan, value: g.count }))} /></Section>
-        <Section title="Client status"><Donut data={a.clientStatus.map((g) => ({ name: g.status, value: g.count }))} /></Section>
-      </div>
-      <Section title="Trainer performance" description="Share of assigned workouts completed in the last 30 days.">
-        {a.trainerPerformance.length === 0 ? <EmptyState icon={Users} title="No trainers" /> : <table className="w-full text-sm"><thead><tr className="text-left text-xs uppercase tracking-wider text-muted-foreground"><th className="pb-2 font-medium">Trainer</th><th className="pb-2 font-medium">Clients</th><th className="pb-2 font-medium">Compliance</th></tr></thead><tbody className="divide-y divide-white/[0.05]">{a.trainerPerformance.map((t) => <tr key={t.trainerId}><td className="py-2.5 font-medium">{t.name}</td><td className="py-2.5 text-muted-foreground">{t.clients}</td><td className="py-2.5">{t.workoutCompliance == null ? <span className="text-muted-foreground">No data</span> : <Badge variant={t.workoutCompliance >= 70 ? 'good' : t.workoutCompliance >= 40 ? 'monitor' : 'attention'}>{t.workoutCompliance}%</Badge>}</td></tr>)}</tbody></table>}
-      </Section>
+    <div className="space-y-4">
+      <PageHeader description="Revenue, growth, attendance and training compliance across the gym." actions={<ViewTabs value={view} onChange={setView} options={[{ value: 'growth', label: 'Growth', icon: TrendingUp }, { value: 'mix', label: 'Breakdown', icon: PieIcon }, { value: 'trainers', label: 'Trainers', icon: Users }]} />} />
+      {view === 'growth' && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Section title="Revenue · last 6 months"><ResponsiveContainer width="100%" height={170}><BarChart data={a.revenueByMonth} margin={{ top: 8, right: 8, left: -10, bottom: 0 }}><CartesianGrid vertical={false} stroke="hsl(0 0% 100% / 0.05)" /><XAxis dataKey="month" {...axis} /><YAxis {...axis} tickFormatter={(v: number) => (v >= 1000 ? `${Math.round(v / 1000)}k` : String(v))} /><Tooltip {...tip} formatter={(v: number) => [inr(v), 'Revenue']} cursor={{ fill: 'hsl(0 0% 100% / 0.04)' }} /><Bar dataKey="revenue" fill="hsl(var(--chart-1))" radius={[6, 6, 2, 2]} maxBarSize={36} /></BarChart></ResponsiveContainer></Section>
+          <Section title="New clients per month"><ResponsiveContainer width="100%" height={170}><BarChart data={a.revenueByMonth} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}><CartesianGrid vertical={false} stroke="hsl(0 0% 100% / 0.05)" /><XAxis dataKey="month" {...axis} /><YAxis {...axis} allowDecimals={false} /><Tooltip {...tip} cursor={{ fill: 'hsl(0 0% 100% / 0.04)' }} /><Bar dataKey="newClients" fill="hsl(var(--chart-2))" radius={[6, 6, 2, 2]} maxBarSize={36} /></BarChart></ResponsiveContainer></Section>
+          <Section title="Check-ins per week"><ResponsiveContainer width="100%" height={170}><BarChart data={a.weeklyAttendance} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}><CartesianGrid vertical={false} stroke="hsl(0 0% 100% / 0.05)" /><XAxis dataKey="week" {...axis} /><YAxis {...axis} allowDecimals={false} /><Tooltip {...tip} cursor={{ fill: 'hsl(0 0% 100% / 0.04)' }} /><Bar dataKey="checkIns" fill="hsl(var(--chart-3))" radius={[6, 6, 2, 2]} maxBarSize={36} /></BarChart></ResponsiveContainer></Section>
+          <Section title="Workout compliance · 30 days" description={`${a.workoutCompliance30d.done} of ${a.workoutCompliance30d.planned} assigned workouts completed`}><p className="font-display text-5xl font-bold">{a.workoutCompliance30d.rate == null ? '—' : `${a.workoutCompliance30d.rate}%`}</p>{a.workoutCompliance30d.rate == null && <p className="mt-1 text-sm text-muted-foreground">No workouts were scheduled in this window.</p>}</Section>
+        </div>
+      )}
+      {view === 'mix' && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Section title="Client attention"><Donut data={[{ name: 'good', value: a.attention.good }, { name: 'monitor', value: a.attention.monitor }, { name: 'needs attention', value: a.attention.attention }]} /></Section>
+          <Section title="Goals"><Donut data={a.goalMix.map((g) => ({ name: g.goal, value: g.count }))} /></Section>
+          <Section title="Memberships"><Donut data={a.membershipMix.map((g) => ({ name: g.plan, value: g.count }))} /></Section>
+          <Section title="Client status"><Donut data={a.clientStatus.map((g) => ({ name: g.status, value: g.count }))} /></Section>
+        </div>
+      )}
+      {view === 'trainers' && (
+        <Section title="Trainer performance" description="Share of assigned workouts completed in the last 30 days.">
+          {a.trainerPerformance.length === 0 ? <EmptyState icon={Users} title="No trainers" /> : <table className="w-full text-sm"><thead><tr className="text-left text-xs uppercase tracking-wider text-muted-foreground"><th className="pb-2 font-medium">Trainer</th><th className="pb-2 font-medium">Clients</th><th className="pb-2 font-medium">Compliance</th></tr></thead><tbody className="divide-y divide-white/[0.05]">{a.trainerPerformance.map((t) => <tr key={t.trainerId}><td className="py-2.5 font-medium">{t.name}</td><td className="py-2.5 text-muted-foreground">{t.clients}</td><td className="py-2.5">{t.workoutCompliance == null ? <span className="text-muted-foreground">No data</span> : <Badge variant={t.workoutCompliance >= 70 ? 'good' : t.workoutCompliance >= 40 ? 'monitor' : 'attention'}>{t.workoutCompliance}%</Badge>}</td></tr>)}</tbody></table>}
+        </Section>
+      )}
     </div>
   );
 }
@@ -241,21 +257,21 @@ export function ReportsPage() {
   const { busy, run } = useAction();
   const dash = (v: number | null, u = '') => (v == null ? 'No data' : `${v > 0 && u !== '%' ? '+' : ''}${v}${u}`);
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader description="Monthly client report. Download as PDF to share with the client." />
       <div className="flex flex-wrap items-center gap-3"><ClientPicker value={clientId} onChange={setClientId} /><input type="month" value={month} max={today().slice(0, 7)} onChange={(e) => setMonth(e.target.value || today().slice(0, 7))} className="h-11 rounded-md border border-input bg-white/[0.03] px-3 text-sm" aria-label="Month" />
         {clientId && <a href={`/api/reports/monthly.pdf?clientId=${clientId}&month=${month}`} className="inline-flex h-11 items-center gap-2 rounded-md border border-white/15 px-5 text-sm font-semibold hover:border-primary/60 hover:text-primary"><Download className="size-4" /> Download PDF</a>}</div>
       {error ? <ErrorState message={error.message} onRetry={reload} /> : !clientId || loading || !data ? (clientId ? <Skeleton className="h-72" /> : <EmptyState icon={FileText} title="Pick a client" />) : (
-        <div className="grid gap-6 md:grid-cols-2">
-          <Section title={`${data.clientName} · ${data.month}`} description={data.goal ? `Goal: ${titleCase(data.goal)}` : undefined} className="md:col-span-2"><div className="grid gap-4 text-sm sm:grid-cols-4">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <Section title={`${data.clientName} · ${data.month}`} description={data.goal ? `Goal: ${titleCase(data.goal)}` : undefined} className="md:col-span-2 xl:col-span-4"><div className="grid gap-4 text-sm sm:grid-cols-4">
             {([['Weight change', dash(data.body.weightChangeKg, ' kg')], ['Waist change', dash(data.body.waistChangeCm, ' cm')], ['Est. body fat change', dash(data.body.estimatedBodyFatChangePct, ' pts')], ['Est. lean mass change', dash(data.body.leanMassChangeKg, ' kg')]] as const).map(([k, v]) => <div key={k}><p className="text-xs uppercase tracking-wider text-muted-foreground">{k}</p><p className="mt-1 font-display text-xl font-bold">{v}</p></div>)}</div></Section>
           <Section title="Training"><p className="font-display text-3xl font-bold">{data.training.compliancePct == null ? '—' : `${data.training.compliancePct}%`}</p><p className="text-sm text-muted-foreground">{data.training.completed} of {data.training.planned} workouts completed</p></Section>
           <Section title="Nutrition"><p className="font-display text-3xl font-bold">{data.nutrition.compliancePct == null ? '—' : `${data.nutrition.compliancePct}%`}</p><p className="text-sm text-muted-foreground">{data.nutrition.mealsCompleted} of {data.nutrition.mealsPlanned} meals completed</p></Section>
           <Section title="Attendance & habits"><ul className="space-y-1 text-sm"><li>{data.attendance.present} days attended · {data.attendance.absent} absent · {data.attendance.leave} leave</li><li>Avg water: {data.habits.avgWaterMl ?? 'no data'}{data.habits.avgWaterMl ? ' ml' : ''}</li><li>Avg sleep: {data.habits.avgSleepHours ?? 'no data'}{data.habits.avgSleepHours ? ' h' : ''}</li></ul></Section>
-          <Section title="Strength (est. 1RM)">{data.strength.length === 0 ? <p className="text-sm text-muted-foreground">No logged sets this month.</p> : <ul className="space-y-1 text-sm">{data.strength.map((s) => <li key={s.exercise} className="flex justify-between"><span>{s.exercise}</span><span className="font-semibold">{s.estimatedOneRepMaxKg} kg</span></li>)}</ul>}</Section>
-          <Section title="Trainer comment" className="md:col-span-2" description="Included in the PDF and sent to the client.">
+          <Section title="Strength (est. 1RM)">{data.strength.length === 0 ? <p className="text-sm text-muted-foreground">No logged sets this month.</p> : <ul className="space-y-1 text-sm">{data.strength.slice(0, 5).map((s) => <li key={s.exercise} className="flex justify-between"><span>{s.exercise}</span><span className="font-semibold">{s.estimatedOneRepMaxKg} kg</span></li>)}</ul>}</Section>
+          <Section title="Trainer comment" className="md:col-span-2 xl:col-span-4" description="Included in the PDF and sent to the client.">
             {data.trainerComment && <p className="mb-3 whitespace-pre-wrap text-sm">{data.trainerComment}</p>}
-            {user?.role !== 'CLIENT' && <><Textarea value={comment} onChange={(e) => setComment(e.target.value)} placeholder={data.trainerComment ? 'Replace the comment…' : 'Write a summary for the client'} /><div className="mt-3 flex justify-end"><Button size="sm" loading={busy} disabled={!comment.trim()} onClick={async () => {
+            {user?.role !== 'CLIENT' && <><Textarea rows={2} value={comment} onChange={(e) => setComment(e.target.value)} placeholder={data.trainerComment ? 'Replace the comment…' : 'Write a summary for the client'} className="min-h-0" /><div className="mt-3 flex justify-end"><Button size="sm" loading={busy} disabled={!comment.trim()} onClick={async () => {
               const [y, m] = month.split('-').map(Number) as [number, number];
               const end = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
               if (await run(() => post('/progress/review', { clientId, period: 'MONTHLY', periodStart: `${month}-01`, periodEnd: end, trainerComment: comment.trim() }), 'Comment saved')) { setComment(''); reload(); }
@@ -272,8 +288,8 @@ export function TrainerAnalyticsPage() {
   if (error) return <ErrorState message={error.message} onRetry={reload} />;
   if (loading || !data) return <Skeleton className="h-72" />;
   return (
-    <div className="space-y-6">
-      <div className="grid gap-6 lg:grid-cols-2">
+    <div className="space-y-4">
+      <div className="grid gap-4 lg:grid-cols-2">
         <Section title="Check-ins per week"><ResponsiveContainer width="100%" height={200}><BarChart data={data.weeklyAttendance} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}><CartesianGrid vertical={false} stroke="hsl(0 0% 100% / 0.05)" /><XAxis dataKey="week" {...axis} /><YAxis {...axis} allowDecimals={false} /><Tooltip {...tip} cursor={{ fill: 'hsl(0 0% 100% / 0.04)' }} /><Bar dataKey="checkIns" fill="hsl(var(--chart-3))" radius={[6, 6, 2, 2]} maxBarSize={36} /></BarChart></ResponsiveContainer></Section>
         <Section title="Your clients"><Donut data={[{ name: 'good', value: data.attention.good }, { name: 'monitor', value: data.attention.monitor }, { name: 'needs attention', value: data.attention.attention }]} /></Section>
       </div>

@@ -49,7 +49,7 @@ export function WaterPage() {
   if (day.error) return <ErrorState message={day.error.message} onRetry={day.reload} />;
   const w = day.data?.water;
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader description="Log water through the day against your target." />
       <Section title="Today">
         {!w ? <Skeleton className="h-40" /> : (
@@ -80,7 +80,7 @@ export function SleepPage() {
   const s = day.data?.sleep;
   if (day.error) return <ErrorState message={day.error.message} onRetry={day.reload} />;
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader description="Log last night’s sleep." />
       <Section title="Last night" description={s ? `Logged: ${s.hours} h${s.quality ? ` · quality ${s.quality}/5` : ''}` : 'Nothing logged yet today.'}>
         <form className="grid gap-4 sm:grid-cols-3" onSubmit={async (e) => { e.preventDefault(); const h = num(hours); if (h && await run(() => put('/habits/sleep', { date: today(), hours: h, quality: num(quality), notes: notes || null }), 'Sleep saved')) { setHours(''); setNotes(''); reloadAll(); } }}>
@@ -102,7 +102,7 @@ export function HabitsPage() {
   if (day.error) return <ErrorState message={day.error.message} onRetry={day.reload} />;
   const save = async (key: string, body: { completed?: boolean; value?: number | null }) => { if (await run(() => put('/habits/habit', { date: today(), habitKey: key, ...body }))) reloadAll(); };
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <PageHeader description="Small daily habits compound. Tick them off or log the number." />
       <Section title="Today">
         {!day.data ? <Skeleton className="h-40" /> : (
@@ -134,7 +134,7 @@ export function HabitsOverview({ clientId }: { clientId: string }) {
   if (day.error) return <ErrorState message={day.error.message} onRetry={day.reload} />;
   const d = day.data;
   return (
-    <div className="grid gap-6 lg:grid-cols-3">
+    <div className="grid gap-4 lg:grid-cols-3">
       <Section title="Water">{hist.data ? <HistoryChart rows={hist.data.items} field="waterMl" unit="ml" color="hsl(var(--chart-2))" /> : <Skeleton className="h-48" />}<p className="mt-2 text-xs text-muted-foreground">Today: {d ? `${d.water.totalMl} / ${d.water.targetMl} ml` : '…'}</p></Section>
       <Section title="Sleep">{hist.data ? <HistoryChart rows={hist.data.items} field="sleepHours" unit="h" color="hsl(var(--chart-4))" /> : <Skeleton className="h-48" />}<p className="mt-2 text-xs text-muted-foreground">Last logged: {d?.sleep ? `${d.sleep.hours} h` : 'nothing today'}</p></Section>
       <Section title="Steps">{hist.data ? <HistoryChart rows={hist.data.items} field="steps" unit="steps" color="hsl(var(--chart-1))" /> : <Skeleton className="h-48" />}<p className="mt-2 text-xs text-muted-foreground">Today: {d?.habits.find((h) => h.key === 'steps')?.value?.toLocaleString() ?? 'not logged'}</p></Section>

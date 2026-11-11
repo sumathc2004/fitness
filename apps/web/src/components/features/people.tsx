@@ -161,7 +161,7 @@ export function ClientsPage({ base }: { base: '/admin' | '/trainer' }) {
   const [status, setStatus] = useState('');
   const [page, setPage] = useState(1);
   const [open, setOpen] = useState(false);
-  const { data, error, loading, reload } = useApi<Paginated<ClientListItem>>(`/clients?page=${page}&pageSize=20${q ? `&q=${encodeURIComponent(q)}` : ''}${status ? `&status=${status}` : ''}`);
+  const { data, error, loading, reload } = useApi<Paginated<ClientListItem>>(`/clients?page=${page}&pageSize=8${q ? `&q=${encodeURIComponent(q)}` : ''}${status ? `&status=${status}` : ''}`);
   const trainers = useApi<{ items: TrainerListItem[] }>(isAdmin ? '/trainers' : null);
   if (error) return <ErrorState message={error.message} onRetry={reload} />;
   const pages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1;
@@ -172,16 +172,16 @@ export function ClientsPage({ base }: { base: '/admin' | '/trainer' }) {
       {loading || !data ? <Skeleton className="h-72" /> : data.items.length === 0 ? <EmptyState icon={Users} title="No clients found" description={q || status ? 'Try a different search or filter.' : 'Add your first client to get started.'} action={<Button onClick={() => setOpen(true)}><Plus /> New client</Button>} /> : (
         <div className="surface-card overflow-x-auto">
           <table className="w-full min-w-[720px] text-sm">
-            <thead><tr className="text-left text-xs uppercase tracking-wider text-muted-foreground"><th className="p-4 font-medium">Client</th><th className="p-4 font-medium">Status</th><th className="p-4 font-medium">Goal</th>{isAdmin && <th className="p-4 font-medium">Trainer</th>}<th className="p-4 font-medium">Membership</th><th className="p-4 font-medium">Last active</th></tr></thead>
+            <thead><tr className="text-left text-xs uppercase tracking-wider text-muted-foreground"><th className="px-4 py-3 font-medium">Client</th><th className="px-4 py-3 font-medium">Status</th><th className="px-4 py-3 font-medium">Goal</th>{isAdmin && <th className="px-4 py-3 font-medium">Trainer</th>}<th className="px-4 py-3 font-medium">Membership</th><th className="px-4 py-3 font-medium">Last active</th></tr></thead>
             <tbody className="divide-y divide-white/[0.05]">
               {data.items.map((c) => (
                 <tr key={c.id} className="transition-colors hover:bg-white/[0.02]">
-                  <td className="p-4"><Link href={`${base}/clients/${c.id}`} className="flex items-center gap-3 font-medium hover:text-primary"><Avatar name={c.name} size={34} /><span>{c.name}<span className="block text-xs font-normal text-muted-foreground">{c.email}</span></span></Link></td>
-                  <td className="p-4"><div className="flex flex-col items-start gap-1"><ClientStatusBadge level={c.level} />{c.status !== 'ACTIVE' && <Badge variant="muted">{c.status.toLowerCase()}</Badge>}</div></td>
-                  <td className="p-4 text-muted-foreground">{c.goal ? titleCase(c.goal) : '—'}</td>
-                  {isAdmin && <td className="p-4 text-muted-foreground">{c.trainerName ?? <span className="text-attention">Unassigned</span>}</td>}
-                  <td className="p-4 text-muted-foreground">{c.membershipEnds ? `Ends ${fmtDate(c.membershipEnds)}` : 'None'}</td>
-                  <td className="p-4 text-muted-foreground">{timeAgo(c.lastActivityAt)}</td>
+                  <td className="px-4 py-2"><Link href={`${base}/clients/${c.id}`} className="flex items-center gap-3 font-medium hover:text-primary"><Avatar name={c.name} size={34} /><span>{c.name}<span className="block text-xs font-normal text-muted-foreground">{c.email}</span></span></Link></td>
+                  <td className="px-4 py-2"><div className="flex flex-col items-start gap-1"><ClientStatusBadge level={c.level} />{c.status !== 'ACTIVE' && <Badge variant="muted">{c.status.toLowerCase()}</Badge>}</div></td>
+                  <td className="px-4 py-2 text-muted-foreground">{c.goal ? titleCase(c.goal) : '—'}</td>
+                  {isAdmin && <td className="px-4 py-2 text-muted-foreground">{c.trainerName ?? <span className="text-attention">Unassigned</span>}</td>}
+                  <td className="px-4 py-2 text-muted-foreground">{c.membershipEnds ? `Ends ${fmtDate(c.membershipEnds)}` : 'None'}</td>
+                  <td className="px-4 py-2 text-muted-foreground">{timeAgo(c.lastActivityAt)}</td>
                 </tr>
               ))}
             </tbody>
@@ -215,7 +215,7 @@ export function ClientDetailPage({ clientId, base }: { clientId: string; base: '
   if (loading || !c) return <Skeleton className="h-96" />;
   const name = `${c.firstName} ${c.lastName}`;
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <Link href={`${base}/clients`} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" /> All clients</Link>
       <div className="surface-card flex flex-wrap items-center gap-4 p-5">
         <Avatar name={name} size={60} />
@@ -232,7 +232,7 @@ export function ClientDetailPage({ clientId, base }: { clientId: string; base: '
       <Tabs<DetailTab> value={tab} onChange={setTab} tabs={[{ id: 'overview', label: 'Overview' }, { id: 'training', label: 'Training' }, { id: 'nutrition', label: 'Nutrition' }, { id: 'progress', label: 'Progress' }, { id: 'attendance', label: 'Attendance' }, { id: 'habits', label: 'Habits' }]} />
 
       {tab === 'overview' && (
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-4 lg:grid-cols-2">
           <Section title="Profile">
             <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
               {([['Sex', c.profile ? titleCase(c.profile.sex) : '—'], ['Age', c.ageYears != null ? `${c.ageYears} years` : 'Add date of birth'], ['Height', c.profile ? `${c.profile.heightCm} cm` : '—'], ['Activity', c.profile ? titleCase(c.profile.activityLevel) : '—'], ['Experience', c.profile ? titleCase(c.profile.trainingExperience) : '—'], ['Goal', c.profile ? titleCase(c.profile.goal) : '—'], ['Check-in code', c.qrCode ?? '—'], ['Emergency contact', c.emergencyContact ?? '—']] as const).map(([k, v]) => <div key={k}><dt className="text-xs uppercase tracking-wider text-muted-foreground">{k}</dt><dd className="mt-0.5 font-medium">{v}</dd></div>)}
@@ -259,7 +259,7 @@ export function ClientDetailPage({ clientId, base }: { clientId: string; base: '
         </div>
       )}
       {tab === 'training' && (
-        <div className="grid gap-6">
+        <div className="grid gap-4">
           <Section title="Assigned workouts" action={<Link href={`${base === '/trainer' ? '/trainer' : '/admin'}/${base === '/trainer' ? 'workout-builder' : 'workout-templates'}`} className="text-sm text-primary hover:underline">{base === '/trainer' ? 'Open builder' : 'Open templates'}</Link>}><WorkoutList clientId={c.id} base={base} /></Section>
           <Section title="Completed sessions"><SessionHistory clientId={c.id} /></Section>
         </div>

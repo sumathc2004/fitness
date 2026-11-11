@@ -15,7 +15,7 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge, Skeleton } from '@/components/ui/misc';
 import { EmptyState, ErrorState, Section } from '@/components/dashboard/primitives';
-import { Chip, ConfirmButton, del, fieldErrors, FormRow, fmtDate, Modal, PageHeader, post, put, SearchBox, Select, Textarea, titleCase, today, useAction, num, useClients } from '@/components/kit/kit';
+import { Chip, ConfirmButton, del, fieldErrors, FormRow, fmtDate, Modal, PageHeader, post, put, SearchBox, Select, Textarea, titleCase, today, useAction, num, useClients, ViewTabs, usePaged, MiniPager } from '@/components/kit/kit';
 import { ClientMultiSelect } from './diet-builder';
 
 const SECTIONS: Array<[WorkoutSection, string]> = [['WARMUP', 'Warm-up'], ['MAIN', 'Main work'], ['CARDIO', 'Cardio'], ['COOLDOWN', 'Cool-down']];
@@ -53,31 +53,38 @@ function rowFromExercise(e: ExerciseDto, section: WorkoutSection): Row {
   return { key: nk(), exerciseId: e.id, name: e.name, section, sets: cardio ? '1' : section === 'MAIN' ? '3' : '2', reps: cardio ? '10 min' : section === 'MAIN' ? '10' : '30 sec', weightKg: '', restSec: section === 'MAIN' ? '60' : '30', tempo: '', technique: 'NORMAL', supersetGroup: '', notes: '', muscles: e.primaryMuscles };
 }
 
-function SortableRow({ row, onChange, onRemove, errors }: { row: Row; onChange: (p: Partial<Row>) => void; onRemove: () => void; errors?: string }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: row.key });
-  const field = 'h-9 px-2.5';
+/** Column layout shared by the header and every exercise row. */
+const ROW_GRID = 'grid grid-cols-[20px_minmax(150px,1.5fr)_58px_76px_68px_68px_76px_110px_minmax(130px,1fr)_24px] items-center gap-2';
+
+function RowHeader() {
   return (
-    <li ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }} className={cn('rounded-lg border bg-card p-3', isDragging ? 'z-10 border-primary/50 shadow-xl' : 'border-white/[0.06]')}>
-      <div className="flex items-start gap-2">
-        <button {...attributes} {...listeners} aria-label={`Drag to reorder ${row.name}`} className="mt-1.5 cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing"><GripVertical className="size-5" /></button>
-        <div className="min-w-0 flex-1 space-y-3">
-          <div className="flex flex-wrap items-center gap-2"><p className="font-medium">{row.name}</p>{row.muscles.slice(0, 2).map((m) => <Badge key={m} variant="muted">{m}</Badge>)}{row.technique !== 'NORMAL' && <Badge variant="primary">{titleCase(row.technique)}{row.supersetGroup ? ` ${row.supersetGroup}` : ''}</Badge>}</div>
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
-            <FormRow label="Sets">{(id) => <Input id={id} type="number" min={1} max={20} className={field} value={row.sets} onChange={(e) => onChange({ sets: e.target.value })} />}</FormRow>
-            <FormRow label="Reps">{(id) => <Input id={id} className={field} value={row.reps} onChange={(e) => onChange({ reps: e.target.value })} />}</FormRow>
-            <FormRow label="Kg">{(id) => <Input id={id} type="number" min={0} step="0.5" className={field} value={row.weightKg} onChange={(e) => onChange({ weightKg: e.target.value })} />}</FormRow>
-            <FormRow label="Rest (s)">{(id) => <Input id={id} type="number" min={0} className={field} value={row.restSec} onChange={(e) => onChange({ restSec: e.target.value })} />}</FormRow>
-            <FormRow label="Tempo">{(id) => <Input id={id} className={field} placeholder="3-1-1" value={row.tempo} onChange={(e) => onChange({ tempo: e.target.value })} />}</FormRow>
-            <FormRow label="Technique">{(id) => <Select id={id} className="h-9 px-2" value={row.technique} onChange={(e) => onChange({ technique: e.target.value as Technique })}><option value="NORMAL">Normal</option><option value="SUPERSET">Superset</option><option value="DROPSET">Dropset</option></Select>}</FormRow>
-          </div>
-          <div className="grid gap-2 sm:grid-cols-[1fr_130px]">
-            <Input aria-label="Notes" placeholder="Coaching notes (optional)" className={field} value={row.notes} onChange={(e) => onChange({ notes: e.target.value })} />
-            {row.technique === 'SUPERSET' && <Input aria-label="Superset group" type="number" min={1} placeholder="Group #" className={field} value={row.supersetGroup} onChange={(e) => onChange({ supersetGroup: e.target.value })} />}
-          </div>
-          {errors && <p role="alert" className="text-xs text-destructive">{errors}</p>}
-        </div>
-        <button onClick={onRemove} aria-label={`Remove ${row.name}`} className="mt-1.5 text-muted-foreground hover:text-destructive"><Trash2 className="size-4" /></button>
+    <div className={cn(ROW_GRID, 'px-3 pb-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground')}>
+      <span /><span>Exercise</span><span>Sets</span><span>Reps</span><span>Kg</span><span>Rest s</span><span>Tempo</span><span>Technique</span><span>Notes</span><span />
+    </div>
+  );
+}
+
+function SortableRow({ row, onChange, onRemove }: { row: Row; onChange: (p: Partial<Row>) => void; onRemove: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: row.key });
+  const field = 'h-8 px-2 text-sm';
+  return (
+    <li ref={setNodeRef} style={{ transform: CSS.Transform.toString(transform), transition }} className={cn(ROW_GRID, 'rounded-lg border bg-card px-3 py-1.5', isDragging ? 'z-10 border-primary/50 shadow-xl' : 'border-white/[0.06]')}>
+      <button {...attributes} {...listeners} aria-label={`Drag to reorder ${row.name}`} className="cursor-grab touch-none text-muted-foreground hover:text-foreground active:cursor-grabbing"><GripVertical className="size-4" /></button>
+      <div className="min-w-0">
+        <p className="truncate text-sm font-medium" title={row.name}>{row.name}</p>
+        <p className="truncate text-[11px] text-muted-foreground">{row.technique !== 'NORMAL' ? <span className="text-primary">{titleCase(row.technique)}{row.supersetGroup ? ` ${row.supersetGroup}` : ''} · </span> : null}{row.muscles.slice(0, 2).join(', ')}</p>
       </div>
+      <Input aria-label={`${row.name} sets`} type="number" min={1} max={20} className={field} value={row.sets} onChange={(e) => onChange({ sets: e.target.value })} />
+      <Input aria-label={`${row.name} reps`} className={field} value={row.reps} onChange={(e) => onChange({ reps: e.target.value })} />
+      <Input aria-label={`${row.name} weight kg`} type="number" min={0} step="0.5" className={field} value={row.weightKg} onChange={(e) => onChange({ weightKg: e.target.value })} />
+      <Input aria-label={`${row.name} rest seconds`} type="number" min={0} className={field} value={row.restSec} onChange={(e) => onChange({ restSec: e.target.value })} />
+      <Input aria-label={`${row.name} tempo`} className={field} placeholder="3-1-1" value={row.tempo} onChange={(e) => onChange({ tempo: e.target.value })} />
+      <div className="flex gap-1">
+        <Select aria-label={`${row.name} technique`} className="h-8 min-w-0 flex-1 px-1.5 text-sm" value={row.technique} onChange={(e) => onChange({ technique: e.target.value as Technique })}><option value="NORMAL">Normal</option><option value="SUPERSET">Superset</option><option value="DROPSET">Dropset</option></Select>
+        {row.technique === 'SUPERSET' && <Input aria-label={`${row.name} superset group`} type="number" min={1} placeholder="#" className="h-8 w-10 px-1.5 text-sm" value={row.supersetGroup} onChange={(e) => onChange({ supersetGroup: e.target.value })} />}
+      </div>
+      <Input aria-label={`${row.name} notes`} placeholder="Coaching notes" className={field} value={row.notes} onChange={(e) => onChange({ notes: e.target.value })} />
+      <button onClick={onRemove} aria-label={`Remove ${row.name}`} className="text-muted-foreground hover:text-destructive"><Trash2 className="size-4" /></button>
     </li>
   );
 }
@@ -131,6 +138,7 @@ export function WorkoutBuilderPage({ id, listHref, forceTemplate }: { id?: strin
   const [assign, setAssign] = useState(false);
   const [errs, setErrs] = useState<Record<string, string>>({});
   const [loaded, setLoaded] = useState(!id);
+  const [tab, setTab] = useState<WorkoutSection>('MAIN');
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
 
   useEffect(() => {
@@ -169,48 +177,56 @@ export function WorkoutBuilderPage({ id, listHref, forceTemplate }: { id?: strin
   };
 
   const total = rows.length;
+  const sets = rows.reduce((t, r) => t + (Number(r.sets) || 0), 0);
+  const list = bySection[tab];
   return (
-    <div className="space-y-6">
-      <Link href={listHref} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" /> Back</Link>
-      <div className="grid gap-6 xl:grid-cols-[1fr_320px]">
-        <div className="space-y-6">
-          <Section title="Workout">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormRow label="Name" error={errs.name} className="sm:col-span-2">{(i) => <Input id={i} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Push day A" />}</FormRow>
-              {!forceTemplate && <FormRow label="Type">{(i) => <Select id={i} value={isTemplate ? 'T' : 'C'} onChange={(e) => setIsTemplate(e.target.value === 'T')}><option value="C">For a client</option><option value="T">Reusable template</option></Select>}</FormRow>}
-              {!isTemplate && <FormRow label="Client" error={errs.clientId}>{(i) => <Select id={i} value={clientId} onChange={(e) => setClientId(e.target.value)}><option value="">Choose…</option>{(clients.data?.items ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</Select>}</FormRow>}
-              {!isTemplate && <FormRow label="Date">{(i) => <Input id={i} type="date" value={date} onChange={(e) => setDate(e.target.value)} />}</FormRow>}
-              <FormRow label="Estimated minutes">{(i) => <Input id={i} type="number" min={5} max={300} value={estMin} onChange={(e) => setEstMin(e.target.value)} />}</FormRow>
-              <FormRow label="Notes" className="sm:col-span-2">{(i) => <Textarea id={i} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Goals for the session, injury cautions…" />}</FormRow>
-            </div>
-            {errs.exercises && <p role="alert" className="mt-3 text-sm text-destructive">{errs.exercises}</p>}
-          </Section>
-
-          {SECTIONS.map(([section, label]) => (
-            <Section key={section} title={label} description={`${bySection[section].length} exercise${bySection[section].length === 1 ? '' : 's'}`} action={<Button size="sm" variant="outline" onClick={() => setPick(section)}><Plus /> Add</Button>}>
-              {bySection[section].length === 0 ? <p className="text-sm text-muted-foreground">Nothing here yet.</p> : (
-                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd(section)}>
-                  <SortableContext items={bySection[section].map((r) => r.key)} strategy={verticalListSortingStrategy}>
-                    <ul className="space-y-2.5">{bySection[section].map((r) => <SortableRow key={r.key} row={r} onChange={(p) => patch(r.key, p)} onRemove={() => setRows((rs) => rs.filter((x) => x.key !== r.key))} errors={undefined} />)}</ul>
-                  </SortableContext>
-                </DndContext>
-              )}
-            </Section>
-          ))}
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link href={listHref} className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="size-4" /> Back</Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="mr-1 text-sm text-muted-foreground"><span className="font-semibold text-foreground">{total}</span> exercises · <span className="font-semibold text-foreground">{sets}</span> sets</span>
+          {id && isTemplate && <Button variant="outline" onClick={() => setAssign(true)}><Send /> Assign to clients</Button>}
+          <Button loading={busy} onClick={() => void save()}>Save {isTemplate ? 'template' : 'workout'}</Button>
         </div>
-        <aside className="xl:sticky xl:top-24 xl:self-start">
-          <Section title="Summary">
-            <p className="font-display text-4xl font-bold">{total}<span className="ml-1 text-base font-medium text-muted-foreground">exercises</span></p>
-            <p className="mt-1 text-sm text-muted-foreground">{rows.reduce((t, r) => t + (Number(r.sets) || 0), 0)} total sets</p>
-            <div className="mt-5 flex flex-col gap-2">
-              <Button loading={busy} onClick={() => void save()}>Save {isTemplate ? 'template' : 'workout'}</Button>
-              {id && isTemplate && <Button variant="outline" onClick={() => setAssign(true)}><Send /> Assign to clients</Button>}
-            </div>
-            {id && !isTemplate && existing.data?.status === 'DRAFT' && <p className="mt-3 text-xs text-muted-foreground">Draft workouts are hidden from the client. Assigning from a template makes them visible.</p>}
-            <p className="mt-3 text-xs text-muted-foreground">Drag the handle to reorder inside a section. Workouts that already have logged sets can’t be edited — duplicate them instead.</p>
-          </Section>
-        </aside>
       </div>
+
+      <Section title="Workout">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+          <FormRow label="Name" error={errs.name} className="sm:col-span-2">{(i) => <Input id={i} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Push day A" />}</FormRow>
+          {!forceTemplate && <FormRow label="Type">{(i) => <Select id={i} value={isTemplate ? 'T' : 'C'} onChange={(e) => setIsTemplate(e.target.value === 'T')}><option value="C">For a client</option><option value="T">Reusable template</option></Select>}</FormRow>}
+          {!isTemplate && <FormRow label="Client" error={errs.clientId}>{(i) => <Select id={i} value={clientId} onChange={(e) => setClientId(e.target.value)}><option value="">Choose…</option>{(clients.data?.items ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</Select>}</FormRow>}
+          {!isTemplate && <FormRow label="Date">{(i) => <Input id={i} type="date" value={date} onChange={(e) => setDate(e.target.value)} />}</FormRow>}
+          <FormRow label="Minutes">{(i) => <Input id={i} type="number" min={5} max={300} value={estMin} onChange={(e) => setEstMin(e.target.value)} />}</FormRow>
+          <FormRow label="Notes" className="sm:col-span-2 lg:col-span-6">{(i) => <Input id={i} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Goals for the session, injury cautions…" />}</FormRow>
+        </div>
+        {errs.exercises && <p role="alert" className="mt-3 text-sm text-destructive">{errs.exercises}</p>}
+      </Section>
+
+      <Section title="Exercises" action={
+        <div className="flex flex-wrap items-center gap-2">
+          <ViewTabs value={tab} onChange={setTab} options={SECTIONS.map(([sec, label]) => ({ value: sec, label: `${label} · ${bySection[sec].length}` }))} />
+          <Button size="sm" variant="outline" onClick={() => setPick(tab)}><Plus /> Add</Button>
+        </div>
+      }>
+        {list.length === 0 ? (
+          <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-white/10 py-8 text-center text-sm text-muted-foreground">
+            Nothing in {SECTIONS.find(([sec]) => sec === tab)![1].toLowerCase()} yet.
+            <Button size="sm" variant="outline" onClick={() => setPick(tab)}><Plus /> Add exercise</Button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <div className="min-w-[900px]">
+              <RowHeader />
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd(tab)}>
+                <SortableContext items={list.map((r) => r.key)} strategy={verticalListSortingStrategy}>
+                  <ul className="space-y-1.5">{list.map((r) => <SortableRow key={r.key} row={r} onChange={(p) => patch(r.key, p)} onRemove={() => setRows((rs) => rs.filter((x) => x.key !== r.key))} />)}</ul>
+                </SortableContext>
+              </DndContext>
+            </div>
+          </div>
+        )}
+        <p className="mt-3 text-[11px] text-muted-foreground">Drag the handle to reorder. Workouts with logged sets can’t be edited — duplicate them instead.{id && !isTemplate && existing.data?.status === 'DRAFT' ? ' Draft workouts are hidden from the client until assigned.' : ''}</p>
+      </Section>
       <Modal open={pick !== null} onClose={() => setPick(null)} title="Add exercise" wide>{pick && <ExercisePicker onPick={(e) => { setRows((rs) => [...rs, rowFromExercise(e, pick)]); setPick(null); }} />}</Modal>
       {id && <AssignWorkoutModal workoutId={id} open={assign} onClose={() => setAssign(false)} />}
     </div>
@@ -254,16 +270,17 @@ export function WorkoutsIndexPage({ builderBase }: { builderBase: string }) {
   const clients = useClients();
   const { data, error, loading, reload } = useApi<{ items: WorkoutSummary[] }>(`/workouts?template=false${clientId ? `&clientId=${clientId}` : ''}`);
   const { run } = useAction();
+  const paged = usePaged(data?.items ?? [], 8);
   if (error) return <ErrorState message={error.message} onRetry={reload} />;
   return (
     <div>
       <PageHeader description="Drag-and-drop workouts with sets, reps, weight, rest, tempo, supersets and dropsets." actions={<><Select aria-label="Client" className="h-10 w-52" value={clientId} onChange={(e) => setClientId(e.target.value)}><option value="">All clients</option>{(clients.data?.items ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</Select><Link href={`${builderBase}/new${clientId ? `?clientId=${clientId}` : ''}`} className={cn(buttonVariants())}><Plus /> New workout</Link></>} />
       {loading || !data ? <Skeleton className="h-56" /> : data.items.length === 0 ? <EmptyState icon={ClipboardList} title="No workouts yet" description="Build your first workout for a client." action={<Link href={`${builderBase}/new`} className={cn(buttonVariants())}><Plus /> New workout</Link>} /> : (
-        <div className="surface-card overflow-x-auto"><table className="w-full min-w-[640px] text-sm"><thead><tr className="text-left text-xs uppercase tracking-wider text-muted-foreground"><th className="p-4 font-medium">Workout</th><th className="p-4 font-medium">Client</th><th className="p-4 font-medium">Date</th><th className="p-4 font-medium">Status</th><th /></tr></thead>
-          <tbody className="divide-y divide-white/[0.05]">{data.items.map((w) => (
-            <tr key={w.id}><td className="p-4"><Link href={`${builderBase}/${w.id}`} className="font-medium hover:text-primary">{w.name}</Link><span className="block text-xs text-muted-foreground">{w.exerciseCount} exercises</span></td><td className="p-4 text-muted-foreground">{w.clientName ?? '—'}</td><td className="p-4 text-muted-foreground">{fmtDate(w.scheduledDate)}</td><td className="p-4"><Badge variant={statusVariant(w.status)}>{titleCase(w.status)}</Badge></td>
-              <td className="p-4 text-right"><ConfirmButton variant="ghost" label="Delete?" onConfirm={async () => { if (await run(() => del(`/workouts/${w.id}`), 'Workout deleted')) reload(); }}><Trash2 className="size-4" /></ConfirmButton></td></tr>
-          ))}</tbody></table></div>
+        <div className="surface-card overflow-x-auto"><table className="w-full min-w-[640px] text-sm"><thead><tr className="text-left text-xs uppercase tracking-wider text-muted-foreground"><th className="px-4 py-3 font-medium">Workout</th><th className="px-4 py-3 font-medium">Client</th><th className="px-4 py-3 font-medium">Date</th><th className="px-4 py-3 font-medium">Status</th><th /></tr></thead>
+          <tbody className="divide-y divide-white/[0.05]">{paged.slice.map((w) => (
+            <tr key={w.id}><td className="px-4 py-2"><Link href={`${builderBase}/${w.id}`} className="font-medium hover:text-primary">{w.name}</Link><span className="block text-xs text-muted-foreground">{w.exerciseCount} exercises</span></td><td className="px-4 py-2 text-muted-foreground">{w.clientName ?? '—'}</td><td className="px-4 py-2 text-muted-foreground">{fmtDate(w.scheduledDate)}</td><td className="px-4 py-2"><Badge variant={statusVariant(w.status)}>{titleCase(w.status)}</Badge></td>
+              <td className="px-4 py-2 text-right"><ConfirmButton variant="ghost" label="Delete?" onConfirm={async () => { if (await run(() => del(`/workouts/${w.id}`), 'Workout deleted')) reload(); }}><Trash2 className="size-4" /></ConfirmButton></td></tr>
+          ))}</tbody></table><div className="px-4 pb-3"><MiniPager page={paged.page} pages={paged.pages} onPage={paged.setPage} total={paged.total} /></div></div>
       )}
     </div>
   );
@@ -301,7 +318,7 @@ export function WorkoutCalendarPage({ builderBase }: { builderBase: string }) {
   return (
     <div>
       <PageHeader description="See what’s scheduled across your clients and move sessions around." actions={<Select aria-label="Client" className="h-10 w-52" value={clientId} onChange={(e) => setClientId(e.target.value)}><option value="">All clients</option>{(clients.data?.items ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</Select>} />
-      <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+      <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
         <Section title={cursor.toLocaleDateString('en-IN', { month: 'long', year: 'numeric', timeZone: 'UTC' })} action={<div className="flex gap-1"><Button size="icon" variant="ghost" aria-label="Previous month" onClick={() => setCursor(new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() - 1, 1)))}><ChevronLeft /></Button><Button size="icon" variant="ghost" aria-label="Next month" onClick={() => setCursor(new Date(Date.UTC(cursor.getUTCFullYear(), cursor.getUTCMonth() + 1, 1)))}><ChevronRight /></Button></div>}>
           <div className="grid grid-cols-7 gap-1.5 text-center text-xs uppercase tracking-wider text-muted-foreground">{['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => <div key={d} className="pb-1">{d}</div>)}</div>
           <div className={cn('grid grid-cols-7 gap-1.5', loading && 'opacity-60')}>
