@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge, Skeleton } from '@/components/ui/misc';
 import { EmptyState, ErrorState, Section, StatCard } from '@/components/dashboard/primitives';
-import { Chip, ConfirmButton, FormRow, fmtDate, Modal, PageHeader, post, put, Select, Textarea, titleCase, useAction, today, num, ClientPicker, ViewTabs } from '@/components/kit/kit';
+import { Chip, ConfirmButton, FormRow, fmtDate, Modal, PageHeader, post, put, Select, Textarea, titleCase, useAction, today, num, ClientPicker, ViewTabs, usePaged, MiniPager } from '@/components/kit/kit';
 
 const axis = { stroke: 'hsl(215 10% 40%)', fontSize: 12, tickLine: false, axisLine: false } as const;
 const tip = { contentStyle: { background: 'hsl(var(--elevated))', border: '1px solid hsl(0 0% 100% / 0.1)', borderRadius: 8, fontSize: 12 } };
@@ -80,6 +80,7 @@ export function SubscriptionsPage() {
   const plans = useApi<{ items: Plan[] }>('/memberships');
   const [open, setOpen] = useState(false);
   const { run } = useAction();
+  const paged = usePaged(data?.items ?? [], 7);
   if (error) return <ErrorState message={error.message} onRetry={reload} />;
   return (
     <div>
@@ -87,11 +88,11 @@ export function SubscriptionsPage() {
       <div className="mb-4 flex gap-2">{(['ACTIVE', 'EXPIRING', 'EXPIRED', 'CANCELLED'] as const).map((f) => <Chip key={f} active={filter === f} onClick={() => setFilter(f)}>{f === 'EXPIRING' ? 'Expiring in 14 days' : titleCase(f)}</Chip>)}</div>
       {loading || !data ? <Skeleton className="h-56" /> : data.items.length === 0 ? <EmptyState icon={Layers} title="Nothing here" description="No subscriptions match this filter." /> : (
         <div className="surface-card overflow-x-auto"><table className="w-full min-w-[640px] text-sm"><thead><tr className="text-left text-xs uppercase tracking-wider text-muted-foreground"><th className="px-4 py-3 font-medium">Client</th><th className="px-4 py-3 font-medium">Plan</th><th className="px-4 py-3 font-medium">Period</th><th className="px-4 py-3 font-medium">Remaining</th><th /></tr></thead>
-          <tbody className="divide-y divide-white/[0.05]">{data.items.map((s) => (
-            <tr key={s.id}><td className="p-4 font-medium">{s.clientName}</td><td className="p-4">{s.membership.name}</td><td className="p-4 text-muted-foreground">{fmtDate(s.startDate)} → {fmtDate(s.endDate)}</td>
-              <td className="p-4">{s.status === 'ACTIVE' ? <Badge variant={s.daysLeft <= 7 ? 'attention' : s.daysLeft <= 14 ? 'monitor' : 'good'}>{s.daysLeft} days</Badge> : <Badge variant="muted">{s.status.toLowerCase()}</Badge>}</td>
-              <td className="p-4 text-right">{s.status === 'ACTIVE' && <ConfirmButton label="Cancel it?" onConfirm={async () => { if (await run(() => post(`/subscriptions/${s.id}/cancel`), 'Subscription cancelled')) reload(); }}>Cancel</ConfirmButton>}</td></tr>
-          ))}</tbody></table></div>
+          <tbody className="divide-y divide-white/[0.05]">{paged.slice.map((s) => (
+            <tr key={s.id}><td className="px-4 py-2 font-medium">{s.clientName}</td><td className="px-4 py-2">{s.membership.name}</td><td className="px-4 py-2 text-muted-foreground">{fmtDate(s.startDate)} → {fmtDate(s.endDate)}</td>
+              <td className="px-4 py-2">{s.status === 'ACTIVE' ? <Badge variant={s.daysLeft <= 7 ? 'attention' : s.daysLeft <= 14 ? 'monitor' : 'good'}>{s.daysLeft} days</Badge> : <Badge variant="muted">{s.status.toLowerCase()}</Badge>}</td>
+              <td className="px-4 py-2 text-right">{s.status === 'ACTIVE' && <ConfirmButton label="Cancel it?" onConfirm={async () => { if (await run(() => post(`/subscriptions/${s.id}/cancel`), 'Subscription cancelled')) reload(); }}>Cancel</ConfirmButton>}</td></tr>
+          ))}</tbody></table><div className="px-4 pb-3"><MiniPager page={paged.page} pages={paged.pages} onPage={paged.setPage} total={paged.total} /></div></div>
       )}
       <Modal open={open} onClose={() => setOpen(false)} title="Enrol a client" description="Replaces their current subscription and creates an invoice.">
         <EnrolForm plans={(plans.data?.items ?? []).filter((p) => p.isActive)} onClose={() => setOpen(false)} onDone={() => { setOpen(false); reload(); }} />
