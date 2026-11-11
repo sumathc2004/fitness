@@ -1,27 +1,23 @@
-# Local development database. Uses its own port (3307) so it never collides with another MySQL on this machine.
+# Local development database. Uses its own port (5433) so it never collides with another PostgreSQL on this machine.
 services:
   db:
-    image: mysql:8.0
-    container_name: gym-platform-db
+    image: postgres:16-alpine
+    container_name: gym-platform-pg
     restart: unless-stopped
     ports:
-      - "3307:3306"
+      - "5433:5432"
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-gym_root_dev}
-      MYSQL_DATABASE: ${DB_NAME:-gym_platform}
-      MYSQL_USER: ${DB_USER:-gym}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-gym_dev_password}
-    command:
-      - --character-set-server=utf8mb4
-      - --collation-server=utf8mb4_unicode_ci
-      - --default-time-zone=+00:00
+      POSTGRES_DB: ${DB_NAME:-gym_platform}
+      POSTGRES_USER: ${DB_USER:-gym}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-gym_dev_password}
+      TZ: UTC
     volumes:
-      - gym_db_data:/var/lib/mysql
+      - gym_pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${DB_ROOT_PASSWORD:-gym_root_dev}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-gym} -d ${DB_NAME:-gym_platform}"]
       interval: 5s
       timeout: 5s
       retries: 20
 
 volumes:
-  gym_db_data:
+  gym_pg_data:

@@ -1,6 +1,6 @@
 import { defineConfig } from 'vitest/config';
 
-const TEST_DB = process.env.TEST_DATABASE_URL ?? 'mysql://gym:gym_dev_password@localhost:3307/gym_platform_test';
+const TEST_DB = process.env.TEST_DATABASE_URL ?? 'postgresql://gym:gym_dev_password@localhost:5433/gym_platform_test';
 
 export default defineConfig({
   test: {
@@ -8,7 +8,7 @@ export default defineConfig({
     include: ['test/**/*.test.ts'],
     globalSetup: ['test/global-setup.ts'],
     setupFiles: ['test/setup.ts'],
-    fileParallelism: false, // all files share one MySQL test database
+    fileParallelism: false, // all files share one PostgreSQL test database
     testTimeout: 30_000,
     hookTimeout: 60_000,
     env: {

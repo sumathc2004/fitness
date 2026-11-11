@@ -6,7 +6,7 @@ Role-based gym platform: **Super Admin** (`/admin`), **Trainer** (`/trainer`) an
 |---|---|
 | Web | Next.js 15 (App Router) · React 19 · TypeScript · Tailwind CSS · shadcn-style UI · Framer Motion · Recharts |
 | API | Node 20+ · Express 5 · TypeScript · Zod · Pino · Socket.IO |
-| Data | MySQL 8 · Prisma 6 |
+| Data | PostgreSQL 16 · Prisma 6 |
 
 ## Status
 
@@ -34,16 +34,14 @@ Prerequisites: Node 20+, npm, Docker (for the dev database).
 ```bash
 npm install                 # installs every workspace and generates the Prisma client
 cp .env.example .env        # then set ACCESS_TOKEN_SECRET / REFRESH_TOKEN_SECRET (see the file for the command)
-npm run db:up               # MySQL 8 on localhost:3307 (own port, won't clash with another MySQL)
+npm run db:up               # PostgreSQL 16 on localhost:5433 (own port, won't clash with another PostgreSQL)
 npm run db:migrate          # apply migrations
 npm run db:seed             # roles, 13 exercises, 26 foods, 3 membership plans, first Super Admin
 npm run db:seed:demo        # OPTIONAL dev-only demo: 2 trainers, 8 clients, 3 weeks of activity (refuses to run in production)
 npm run dev                 # API → http://localhost:4000   Web → http://localhost:3100
 ```
 
-> **Ports:** web `3100`, API `4000`, MySQL `3307`. (3000 is deliberately avoided because it is so commonly in use.)
-> For the dev DB the `gym` MySQL user needs permission to create the Prisma *shadow database*:
-> `docker exec gym-platform-db mysql -uroot -pgym_root_dev -e "GRANT ALL ON *.* TO 'gym'@'%'; FLUSH PRIVILEGES;"`
+> **Ports:** web `3100`, API `4000`, PostgreSQL `5433`. (3000 is deliberately avoided because it is so commonly in use.)
 
 ### Development logins (after `npm run db:seed:demo`, or `npm run db:dev-logins` on an existing DB)
 
@@ -108,7 +106,7 @@ Production environment variables:
 
 | Variable | Value |
 |---|---|
-| `DATABASE_URL` | Hosted MySQL 8 connection string (append `?connection_limit=5` for serverless) |
+| `DATABASE_URL` | Hosted PostgreSQL connection string — the Neon integration (Vercel Marketplace) sets it automatically |
 | `ACCESS_TOKEN_SECRET`, `REFRESH_TOKEN_SECRET` | Two different random strings, 32+ characters |
 | `WEB_URL` | The production URL, e.g. `https://your-app.vercel.app` |
 | `COOKIE_SECURE` | `true` |

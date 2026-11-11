@@ -8,13 +8,11 @@ export const app = createApp();
 export const PASSWORD = 'Str0ng!Passw0rd';
 let counter = 0;
 
-/** Wipes every table (FK checks off) and re-creates the three roles. Call in beforeAll of files needing a clean slate. */
+/** Wipes every table (one TRUNCATE … CASCADE) and re-creates the three roles. Call in beforeAll of files needing a clean slate. */
 export async function resetDb() {
-  const tables = await prisma.$queryRaw<Array<{ TABLE_NAME: string }>>`
-    SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME <> '_prisma_migrations'`;
-  await prisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 0');
-  for (const t of tables) await prisma.$executeRawUnsafe(`TRUNCATE TABLE \`${t.TABLE_NAME}\``);
-  await prisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS = 1');
+  const tables = await prisma.$queryRaw<Array<{ tablename: string }>>`
+    SELECT tablename FROM pg_tables WHERE schemaname = current_schema() AND tablename <> '_prisma_migrations'`;
+  if (tables.length) await prisma.$executeRawUnsafe(`TRUNCATE TABLE ${tables.map((t) => `"${t.tablename}"`).join(', ')} RESTART IDENTITY CASCADE`);
   for (const name of ROLE_NAMES) await prisma.role.create({ data: { name, permissions: [...ROLE_PERMISSIONS[name]] } });
 }
 

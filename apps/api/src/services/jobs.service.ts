@@ -6,7 +6,7 @@ import { notify, trainerUserIdsOf } from './notification.service';
 /** Creates a notification only if the same (user, type, key) wasn't already sent today. */
 async function notifyOnce(userId: string, type: Parameters<typeof notify>[0]['type'], key: string, title: string, body: string) {
   const since = startOfDayUTC();
-  const dup = await prisma.notification.findFirst({ where: { userId, type, createdAt: { gte: since }, data: { path: '$.key', equals: key } }, select: { id: true } });
+  const dup = await prisma.notification.findFirst({ where: { userId, type, createdAt: { gte: since }, data: { path: ['key'], equals: key } }, select: { id: true } });
   if (dup) return false;
   await notify({ userId, type, title, body, data: { key } });
   return true;

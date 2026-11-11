@@ -28,7 +28,7 @@ export async function listExercises(q: { q?: string; category?: string; difficul
   const rows = await prisma.exercise.findMany({
     where: {
       ...(q.includeInactive ? {} : { isActive: true }),
-      ...(q.q ? { name: { contains: q.q } } : {}),
+      ...(q.q ? { name: { contains: q.q, mode: 'insensitive' as const } } : {}),
       ...(q.category ? { category: q.category as Prisma.EnumExerciseCategoryFilter['equals'] } : {}),
       ...(q.difficulty ? { difficulty: q.difficulty as Prisma.EnumExerciseDifficultyFilter['equals'] } : {}),
     },

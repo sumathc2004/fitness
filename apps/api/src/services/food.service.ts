@@ -15,7 +15,7 @@ const toDto = (f: Row): FoodDto => ({
 export async function listFoods(q: { q?: string; category?: string; limit: number }): Promise<{ items: FoodDto[]; categories: string[] }> {
   const [rows, cats] = await Promise.all([
     prisma.foodItem.findMany({
-      where: { isActive: true, ...(q.q ? { name: { contains: q.q } } : {}), ...(q.category ? { category: q.category } : {}) },
+      where: { isActive: true, ...(q.q ? { name: { contains: q.q, mode: 'insensitive' as const } } : {}), ...(q.category ? { category: q.category } : {}) },
       include, orderBy: { name: 'asc' }, take: q.limit,
     }),
     prisma.foodItem.findMany({ where: { isActive: true, category: { not: null } }, distinct: ['category'], select: { category: true }, orderBy: { category: 'asc' } }),

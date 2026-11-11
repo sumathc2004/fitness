@@ -45,7 +45,7 @@ const toTrainerItem = (t: Prisma.TrainerGetPayload<{ select: typeof trainerSelec
 
 export async function listTrainers(q?: string): Promise<TrainerListItem[]> {
   const rows = await prisma.trainer.findMany({
-    where: { user: { deletedAt: null, ...(q ? { OR: [{ firstName: { contains: q } }, { lastName: { contains: q } }, { email: { contains: q } }] } : {}) } },
+    where: { user: { deletedAt: null, ...(q ? { OR: [{ firstName: { contains: q, mode: 'insensitive' as const } }, { lastName: { contains: q, mode: 'insensitive' as const } }, { email: { contains: q, mode: 'insensitive' as const } }] } : {}) } },
     select: trainerSelect, orderBy: { user: { firstName: 'asc' } },
   });
   return rows.map(toTrainerItem);
@@ -94,7 +94,7 @@ export async function listClients(req: Request, q: { q?: string; status?: 'ACTIV
   const visible = await visibleClientIds(req);
   const search = q.q?.trim();
   const where: Prisma.ClientWhereInput = {
-    user: { deletedAt: null, ...(search ? { OR: [{ firstName: { contains: search } }, { lastName: { contains: search } }, { email: { contains: search } }] } : {}) },
+    user: { deletedAt: null, ...(search ? { OR: [{ firstName: { contains: search, mode: 'insensitive' as const } }, { lastName: { contains: search, mode: 'insensitive' as const } }, { email: { contains: search, mode: 'insensitive' as const } }] } : {}) },
     ...(visible ? { id: { in: visible } } : {}),
     ...(q.status ? { status: q.status } : {}),
     ...(q.trainerId ? { trainers: { some: { trainerId: q.trainerId, endedAt: null } } } : {}),

@@ -1,4 +1,4 @@
-// Gym Management & Fitness Intelligence Platform — MySQL schema (Prisma 6)
+// Gym Management & Fitness Intelligence Platform — PostgreSQL schema (Prisma 6)
 //
 // Conventions
 //  • String cuid() primary keys, createdAt/updatedAt on every mutable table.
@@ -11,7 +11,7 @@ generator client {
 }
 
 datasource db {
-  provider     = "mysql"
+  provider     = "postgresql"
   url          = env("DATABASE_URL")
   relationMode = "foreignKeys"
 }
