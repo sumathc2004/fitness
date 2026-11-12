@@ -36,3 +36,5 @@ const make = (windowMs: number, limit: number, key?: (req: any) => string) =>
 export const globalLimiter = make(60_000, 600);
 export const loginLimiter = make(15 * 60_000, 20, (req) => `${req.ip}|${String(req.body?.identifier ?? '').toLowerCase()}`);
 export const forgotLimiter = make(60 * 60_000, 8);
+/** AI calls cost money: 30 meal analyses per user per hour. Use after authenticate. */
+export const aiLimiter = make(60 * 60_000, 30, (req) => `ai|${req.auth?.userId ?? req.ip}`);

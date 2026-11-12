@@ -37,6 +37,10 @@ export type DietInput = z.infer<typeof dietInputSchema>;
 export const assignDietSchema = z.object({ clientIds: z.array(z.string()).min(1).max(100), startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/) });
 
 export interface Macros { calories: number; proteinG: number; carbsG: number; fatG: number; fiberG: number }
+
+/** AI estimate of a free-text meal (POST /api/meals/analyze); nothing is saved until the client logs it. */
+export interface AnalysedMealItem extends Macros { name: string; portion: string }
+export interface MealAnalysisDto { items: AnalysedMealItem[]; totals: Macros; note: string | null }
 export interface DietItemDto extends Macros { id: string; name: string; quantity: number; servingLabel: string | null; foodItemId: string | null; foodServingId: string | null }
 export interface DietMealDto { id: string; mealType: MealType; name: string; timeOfDay: string | null; order: number; notes: string | null; items: DietItemDto[]; totals: Macros }
 export interface DietDto {

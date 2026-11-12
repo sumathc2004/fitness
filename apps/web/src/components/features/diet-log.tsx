@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Check, Plus, SkipForward, Trash2, Undo2, Utensils } from 'lucide-react';
-import type { DailyMealDto, DailyNutritionDto, FoodDto, Macros } from '@gym/types';
+import { Check, Info, Pencil, Plus, SkipForward, Sparkles, Trash2, Undo2, Utensils, X } from 'lucide-react';
+import type { AnalysedMealItem, DailyMealDto, DailyNutritionDto, FoodDto, Macros, MealAnalysisDto } from '@gym/types';
 import { useApi } from '@/lib/use-api';
 import { useAuth } from '@/lib/auth-context';
 import { cn } from '@/lib/utils';
@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge, Progress, Skeleton } from '@/components/ui/misc';
 import { EmptyState, ErrorState, Section } from '@/components/dashboard/primitives';
-import { del, FormRow, Modal, PageHeader, post, put, SearchBox, Select, titleCase, today, useAction, num } from '@/components/kit/kit';
+import { del, FormRow, Modal, PageHeader, post, put, SearchBox, Select, Textarea, titleCase, today, useAction, num } from '@/components/kit/kit';
 
 export interface PickedItem { foodItemId?: string; foodServingId?: string; customName?: string; quantity: number; name: string; servingLabel?: string; calories: number; proteinG: number; carbsG: number; fatG: number; fiberG: number }
 
@@ -86,6 +86,97 @@ export function MacroBars({ consumed, target }: { consumed: Macros; target: (Mac
 
 const statusBadge = (s: DailyMealDto['status']) => (s === 'COMPLETED' ? <Badge variant="good">Done</Badge> : s === 'SKIPPED' ? <Badge variant="monitor">Skipped</Badge> : <Badge variant="muted">To do</Badge>);
 
+const MEAL_TYPES = ['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK', 'PRE_WORKOUT', 'POST_WORKOUT'];
+const round = (n: number) => Math.round(n).toLocaleString('en-IN');
+
+/**
+ * Extra meal, the simple way: the client writes what they ate in their own words, AI estimates each food's
+ * portion, calories and macros, the client removes anything wrong and adds the rest to the day.
+ */
+function AiMealLogger({ date, onLogged }: { date: string; onLogged: (d: DailyNutritionDto) => void }) {
+  const [mealType, setMealType] = useState('SNACK');
+  const [text, setText] = useState('');
+  const [result, setResult] = useState<MealAnalysisDto | null>(null);
+  const [removed, setRemoved] = useState<Set<number>>(new Set());
+  const [analysing, setAnalysing] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  const { busy, run } = useAction();
+
+  const analyse = async () => {
+    setProblem(null); setAnalysing(true);
+    try {
+      setResult(await post<MealAnalysisDto>('/meals/analyze', { text: text.trim() }));
+      setRemoved(new Set());
+    } catch (e) {
+      setProblem(e instanceof Error ? e.message : 'Analysis failed. Please try again.');
+    } finally {
+      setAnalysing(false);
+    }
+  };
+
+  const kept: AnalysedMealItem[] = result ? result.items.filter((_, i) => !removed.has(i)) : [];
+  const total = (k: keyof Macros) => kept.reduce((t, i) => t + i[k], 0);
+  const save = async () => {
+    const r = await run(() => post<DailyNutritionDto>('/meals', {
+      date, mealType, notes: text.trim().slice(0, 300),
+      items: kept.map((i) => ({ customName: `${i.name} (${i.portion})`.slice(0, 100), quantity: 1, calories: i.calories, proteinG: i.proteinG, carbsG: i.carbsG, fatG: i.fatG, fiberG: i.fiberG })),
+    }), 'Meal added');
+    if (r) onLogged(r);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-3 sm:grid-cols-[200px_1fr]">
+        <FormRow label="Meal type">{(id) => <Select id={id} value={mealType} onChange={(e) => setMealType(e.target.value)}>{MEAL_TYPES.map((t) => <option key={t} value={t}>{titleCase(t)}</option>)}</Select>}</FormRow>
+        <FormRow label="What did you eat?" hint="Write it the way you’d say it — quantities help.">
+          {(id) => <Textarea id={id} rows={3} maxLength={600} value={text} disabled={!!result} onChange={(e) => setText(e.target.value)} placeholder="e.g. 2 rotis, 1 katori dal, a bowl of rice and a glass of buttermilk" className="min-h-0" />}
+        </FormRow>
+      </div>
+
+      {problem && <p role="alert" className="rounded-lg border border-attention/30 bg-attention/[0.06] px-3 py-2 text-sm text-attention">{problem}</p>}
+
+      {!result ? (
+        <div className="flex items-center justify-between gap-3">
+          <p className="text-xs text-muted-foreground">AI estimates each food’s portion, calories and macros. You can check them before saving.</p>
+          <Button onClick={() => void analyse()} loading={analysing} disabled={text.trim().length < 3}><Sparkles /> Analyse with AI</Button>
+        </div>
+      ) : (
+        <>
+          <div className="overflow-hidden rounded-xl border border-white/[0.06]">
+            <ul className="divide-y divide-white/[0.05]">
+              {result.items.map((i, idx) => {
+                const off = removed.has(idx);
+                return (
+                  <li key={idx} className={cn('flex items-center gap-3 px-4 py-2.5', off && 'opacity-40')}>
+                    <div className="min-w-0 flex-1">
+                      <p className={cn('truncate text-sm font-medium', off && 'line-through')}>{i.name}</p>
+                      <p className="truncate text-xs text-muted-foreground">{i.portion}</p>
+                    </div>
+                    <div className="text-right text-xs leading-tight text-muted-foreground"><p className="text-sm font-semibold text-foreground">{round(i.calories)} kcal</p>P{Math.round(i.proteinG)} · C{Math.round(i.carbsG)} · F{Math.round(i.fatG)}</div>
+                    <button type="button" onClick={() => setRemoved((s) => { const n = new Set(s); if (n.has(idx)) n.delete(idx); else n.add(idx); return n; })}
+                      aria-label={off ? `Put back ${i.name}` : `Remove ${i.name}`} className="grid size-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-white/[0.06] hover:text-foreground">
+                      {off ? <Undo2 className="size-4" /> : <X className="size-4" />}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="flex items-center justify-between gap-3 border-t border-white/[0.06] bg-white/[0.02] px-4 py-2.5 text-sm">
+              <span className="font-semibold">Total</span>
+              <span className="tabular-nums text-muted-foreground"><span className="font-semibold text-primary">{round(total('calories'))} kcal</span> · P{Math.round(total('proteinG'))} · C{Math.round(total('carbsG'))} · F{Math.round(total('fatG'))} · Fibre {Math.round(total('fiberG'))} g</span>
+            </div>
+          </div>
+          <p className="flex gap-2 text-xs text-muted-foreground"><Info className="mt-0.5 size-3.5 shrink-0" />{result.note ? `${result.note} ` : ''}These are AI estimates — remove anything that’s wrong, or edit the text and analyse again.</p>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => { setResult(null); setProblem(null); }}><Pencil /> Edit text</Button>
+            <Button loading={busy} disabled={kept.length === 0} onClick={() => void save()}><Check /> Add to my day</Button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 /** One day of nutrition. Clients can log; staff (clientId given) see it read-only. */
 export function NutritionDay({ clientId }: { clientId?: string | null }) {
   const [date, setDate] = useState(today());
@@ -93,7 +184,6 @@ export function NutritionDay({ clientId }: { clientId?: string | null }) {
   const { data, error, loading, reload } = useApi<DailyNutritionDto>(`/nutrition/daily?${qs}`);
   const [state, setState] = useState<DailyNutritionDto | null>(null);
   const [extra, setExtra] = useState(false);
-  const [mealType, setMealType] = useState('SNACK');
   const { busy, run } = useAction();
   useEffect(() => { if (data) setState(data); }, [data]);
   const readOnly = !!clientId;
@@ -102,10 +192,6 @@ export function NutritionDay({ clientId }: { clientId?: string | null }) {
   const setLog = async (m: DailyMealDto, status: 'COMPLETED' | 'SKIPPED' | 'PENDING') => {
     const r = await run(() => put<DailyNutritionDto>('/diet-logs', { dietMealId: m.dietMealId, date, status }));
     if (r) setState(r);
-  };
-  const addExtra = async (i: PickedItem) => {
-    const r = await run(() => post<DailyNutritionDto>('/meals', { date, mealType, items: [i.foodServingId ? { foodItemId: i.foodItemId, foodServingId: i.foodServingId, quantity: i.quantity } : { customName: i.customName, quantity: 1, calories: i.calories, proteinG: i.proteinG, carbsG: i.carbsG, fatG: i.fatG }] }), 'Meal added');
-    if (r) { setState(r); setExtra(false); }
   };
 
   if (error) return <ErrorState message={error.message} onRetry={reload} />;
@@ -138,9 +224,8 @@ export function NutritionDay({ clientId }: { clientId?: string | null }) {
         )}
       </Section>
       <Section title="Today’s nutrition" description="Counts meals you’ve marked as eaten.">{d ? <MacroBars consumed={d.consumed} target={d.target} /> : <Skeleton className="h-48" />}</Section>
-      <Modal open={extra} onClose={() => setExtra(false)} title="Add an extra meal" description="For anything that isn’t on your plan." wide>
-        <FormRow label="Meal type" className="mb-4">{(id) => <Select id={id} value={mealType} onChange={(e) => setMealType(e.target.value)} className="w-48">{['BREAKFAST', 'LUNCH', 'DINNER', 'SNACK', 'PRE_WORKOUT', 'POST_WORKOUT'].map((t) => <option key={t} value={t}>{titleCase(t)}</option>)}</Select>}</FormRow>
-        <FoodPicker onPick={(i) => void addExtra(i)} />
+      <Modal open={extra} onClose={() => setExtra(false)} title="Add an extra meal" description="Tell us what you ate — AI works out the calories and macros." wide>
+        {extra && <AiMealLogger date={date} onLogged={(r) => { setState(r); setExtra(false); }} />}
       </Modal>
     </div>
   );

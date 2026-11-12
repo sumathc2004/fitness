@@ -4,7 +4,9 @@ import { assessmentInputSchema, assignDietSchema, calculateInputSchema, decision
 import type { AssessmentInputDto, CalculateInput, DietInput, FoodInput, MealLogInput, SaveTargetInput } from '@gym/types';
 import type { NutritionSettings } from '@gym/config';
 import { authenticate, requirePermission, requireRole } from '../middleware/auth';
+import { aiLimiter } from '../middleware/security';
 import { validate } from '../middleware/validate';
+import { analyseMealText } from '../services/meal-ai.service';
 import * as diets from '../services/diet.service';
 import * as foods from '../services/food.service';
 import * as meals from '../services/meal.service';
@@ -60,6 +62,9 @@ mealsRouter.get('/', async (req, res) => {
   const q = z.object({ clientId: z.string().optional(), date: date.default(today) }).parse(req.query);
   res.json(await meals.getDailyNutrition(req, nutrition.resolveClientId(req, q.clientId), q.date));
 });
+// Free-text meal → AI-estimated items and macros (nothing saved; the client reviews, then POSTs /api/meals).
+const analyseSchema = z.object({ text: z.string().trim().min(3, 'Tell us what you ate').max(600, 'Keep it under 600 characters') });
+mealsRouter.post('/analyze', requirePermission('diets:log'), aiLimiter, validate(analyseSchema), async (req, res) => { res.json(await analyseMealText((req.body as z.infer<typeof analyseSchema>).text)); });
 mealsRouter.post('/', requirePermission('diets:log'), validate(mealLogInputSchema), async (req, res) => { res.status(201).json(await meals.logCustomMeal(req, req.body as MealLogInput)); });
 mealsRouter.delete('/:id', requirePermission('diets:log'), async (req, res) => { res.json(await meals.deleteCustomMeal(req, id(req.params.id))); });
 
